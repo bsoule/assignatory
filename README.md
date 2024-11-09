@@ -1,3 +1,7 @@
+# I'm going on a picnic
+
+I'm going on a picnic, and I'm bringing assignatory, an app for assigning what everyone should bring to the picnic.
+
 ## Running React on Replit
 
 [React](https://reactjs.org/) is a popular JavaScript library for building user interfaces.
