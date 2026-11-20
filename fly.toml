@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for tgdinner on 2026-11-20T13:15:51-08:00
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'tgdinner'
+primary_region = 'sjc'
+
+[build]
+[env]
+  API_PORT = '8080'
+  DATA_FILE = '/data/data.json'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+  initial_size = '1gb'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
