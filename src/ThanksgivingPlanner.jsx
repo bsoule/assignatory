@@ -1,7 +1,6 @@
 // ThanksgivingPlanner.jsx
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Check, Edit2 } from 'lucide-react';
-import Database from '@replit/database';
 
 
 //const db = new Database();
