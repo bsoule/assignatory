@@ -1,0 +1,10 @@
+# The day's schedule, shown under the "Schedule" pill.
+#
+# One line per item. Start a line with a time (4:30, 4pm, 2:00-4:00, noon) to put
+# the time in its own column; any other line is shown as written.
+# Lines starting with # are ignored. Deploy after editing: fly deploy
+12:00 Drinks, snacks, sports, and Apple Turkeys 
+1:30 MSU v Arkansas tipoff
+2:00 last call for Apple Turkeys! 
+4:30 Dinner
+5:30 Pie 

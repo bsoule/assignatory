@@ -1,6 +1,9 @@
 // ThanksgivingPlanner.jsx
-import React, { useState, useEffect } from 'react';
-import { Plus, X, Check, Edit2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, X, Check, Edit2, HelpCircle, Clock } from 'lucide-react';
+import Card from './Card';
+import HelpDialog from './HelpDialog';
+import Schedule from './Schedule';
 import {
   CATEGORIES,
   guessCategory,
@@ -29,6 +32,8 @@ const VIEWS = [
   { id: 'mine', label: 'Mine' },
   { id: 'pies', label: 'Pies' },
   { id: 'unclaimed', label: 'Unclaimed' },
+  // Not a view of the dish list, so its pill looks different: green, with a clock.
+  { id: 'schedule', label: 'Schedule', aside: true },
 ];
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -47,13 +52,14 @@ const goTo = (view, who) => {
   window.location.hash = who ? `${view}/${encodeURIComponent(who)}` : view;
 };
 
-// Remember who you are between visits, for the "Mine" view.
-const ME_KEY = 'tgdinner.me';
-const recallMe = () => {
-  try { return localStorage.getItem(ME_KEY) || ''; } catch { return ''; }
+// Small things this browser remembers between visits.
+const ME_KEY = 'tgdinner.me';              // who you picked in the "Mine" view
+const SEEN_HELP_KEY = 'tgdinner.seenHelp';  // set once the instructions have been dismissed
+const recall = (key) => {
+  try { return localStorage.getItem(key) || ''; } catch { return ''; }
 };
-const rememberMe = (name) => {
-  try { localStorage.setItem(ME_KEY, name); } catch { /* private window: fine */ }
+const remember = (key, value) => {
+  try { localStorage.setItem(key, value); } catch { /* private window: fine */ }
 };
 
 const fetchDishes = async () => {
@@ -82,21 +88,21 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
       if (e.key === 'Escape') setEditing(null);
     };
     return (
-      <div className="flex flex-wrap items-center gap-2 p-3 border rounded bg-white">
+      <li className="flex flex-wrap items-center gap-2 bg-white px-4 py-3">
         <input
           type="text"
           aria-label="Dish name"
           value={editing.name}
           onChange={(e) => set({ name: e.target.value })}
           onKeyDown={onKeyDown}
-          className="flex-1 min-w-[10rem] p-1 border rounded"
+          className="field min-w-[8rem] flex-1 py-1.5"
           autoFocus
         />
         <select
           aria-label="Category"
           value={editing.category}
           onChange={(e) => set({ category: e.target.value })}
-          className="p-1 border rounded bg-white"
+          className="field py-1.5"
         >
           {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
         </select>
@@ -107,35 +113,37 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
           value={editing.notes}
           onChange={(e) => set({ notes: e.target.value })}
           onKeyDown={onKeyDown}
-          className="flex-1 min-w-[10rem] p-1 border rounded"
+          className="field min-w-[8rem] flex-1 py-1.5"
         />
-        <button onClick={saveEdit} className="p-1 text-blue-600 hover:text-blue-700" title="Save">
-          <Check size={20} />
+        <button onClick={saveEdit} className="round-button bg-leaf" title="Save">
+          <Check size={18} strokeWidth={3} />
         </button>
-        <button onClick={() => setEditing(null)} className="p-1 text-gray-400 hover:text-gray-600" title="Cancel">
-          <X size={20} />
+        <button onClick={() => setEditing(null)} className="ghost-button" title="Cancel">
+          <X size={18} strokeWidth={2.5} />
         </button>
-      </div>
+      </li>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 p-3 border rounded bg-white">
-      <div className="flex-1 min-w-[8rem]">
-        <div className="font-medium">{dish.name}</div>
-        {dish.notes && <div className="text-sm text-gray-500">{dish.notes}</div>}
-        {showCategory && <div className="text-xs uppercase tracking-wide text-gray-400">{categoryOf(dish)}</div>}
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <div className="min-w-[7rem] flex-1">
+        <div className="text-lg font-medium leading-snug">{dish.name}</div>
+        {dish.notes && <div className="text-sm text-ink/70">{dish.notes}</div>}
+        {showCategory && (
+          <div className="text-xs font-semibold uppercase tracking-wider text-ink/70">{categoryOf(dish)}</div>
+        )}
       </div>
 
       {/* Kept together so that on a narrow screen they wrap as one group */}
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="ml-auto flex items-center gap-2">
         {isUnclaimed(dish) ? (
           <input
             type="text"
             aria-label={`Who is bringing ${dish.name}?`}
             placeholder="Assign to..."
             list="people"
-            className="p-1 border rounded w-36"
+            className="field w-36 py-1.5 text-sm"
             onKeyDown={(e) => {
               const name = e.target.value.trim();
               if (e.key === 'Enter' && name) {
@@ -146,31 +154,25 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
           />
         ) : dish.status === 'confirmed' ? (
           <>
-            <span className="text-green-600 font-medium">{dish.assignedTo} ✓</span>
-            <button
-              onClick={() => release(dish.id)}
-              className="p-1 text-gray-400 hover:text-red-600"
-              title="Remove assignment"
-            >
-              <X size={20} />
+            <span className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-leaf px-3 py-0.5 font-medium">
+              {dish.assignedTo}
+              <Check size={16} strokeWidth={3} role="img" aria-label="confirmed" />
+            </span>
+            <button onClick={() => release(dish.id)} className="ghost-button" title="Remove assignment">
+              <X size={18} strokeWidth={2.5} />
             </button>
           </>
         ) : (
           <>
-            <span className="text-gray-600">{dish.assignedTo}</span>
-            <button
-              onClick={() => confirm(dish.id)}
-              className="p-1 text-green-600 hover:text-green-700"
-              title="Confirm"
-            >
-              <Check size={20} />
+            {/* Dashed outline: asked, but not confirmed yet */}
+            <span className="rounded-full border-2 border-dashed border-ink/60 px-3 py-0.5 font-medium">
+              {dish.assignedTo}
+            </span>
+            <button onClick={() => confirm(dish.id)} className="round-button bg-leaf" title="Confirm">
+              <Check size={18} strokeWidth={3} />
             </button>
-            <button
-              onClick={() => release(dish.id)}
-              className="p-1 text-red-600 hover:text-red-700"
-              title="Decline"
-            >
-              <X size={20} />
+            <button onClick={() => release(dish.id)} className="round-button bg-cream hover:bg-tomato" title="Decline">
+              <X size={18} strokeWidth={3} />
             </button>
           </>
         )}
@@ -182,13 +184,13 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             category: categoryOf(dish),
             notes: dish.notes || '',
           })}
-          className="p-1 text-gray-400 hover:text-gray-600"
+          className="ghost-button"
           title="Edit"
         >
-          <Edit2 size={20} />
+          <Edit2 size={18} />
         </button>
       </div>
-    </div>
+    </li>
   );
 };
 
@@ -197,7 +199,15 @@ const ThanksgivingPlanner = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [route, setRoute] = useState(readRoute);
-  const [me, setMe] = useState(recallMe);
+  const [me, setMe] = useState(() => recall(ME_KEY));
+  // The instructions open by themselves on a first visit.
+  const [helpOpen, setHelpOpen] = useState(() => !recall(SEEN_HELP_KEY));
+  const helpButton = useRef(null);
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    remember(SEEN_HELP_KEY, '1');
+    helpButton.current?.focus();
+  }, []);
   const [newDish, setNewDish] = useState('');
   const [newCategory, setNewCategory] = useState('');  // '' means guess from the name
   const [editing, setEditing] = useState(null);
@@ -286,7 +296,7 @@ const ThanksgivingPlanner = () => {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
+      <div className="mx-auto max-w-2xl p-6 text-center text-lg">
         Loading dishes...
       </div>
     );
@@ -299,126 +309,168 @@ const ThanksgivingPlanner = () => {
   const pies = dishes.filter(isPie);
   const unclaimed = dishes.filter(isUnclaimed);
   const mine = person ? dishes.filter((dish) => isBringing(dish, person)) : [];
-  const counts = { all: dishes.length, mine: person ? mine.length : null, pies: pies.length, unclaimed: unclaimed.length };
+  const counts = { all: dishes.length, mine: person ? mine.length : null, pies: pies.length, unclaimed: unclaimed.length, schedule: null };
 
   const pickPerson = (name) => {
     setMe(name);
-    rememberMe(name);
+    remember(ME_KEY, name);
     goTo('mine', name);
   };
 
   const list = (items, showCategory) => (
-    <div className="space-y-2">
+    <ul className="divide-y-2 divide-dashed divide-ink/15">
       {items.map((dish) => (
         <DishRow key={dish.id} dish={dish} showCategory={showCategory} {...rowActions} />
       ))}
-    </div>
+    </ul>
   );
-  const note = (text) => <p className="text-gray-600">{text}</p>;
+  const note = (text) => <p className="px-4 py-3 text-ink/70">{text}</p>;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Thanksgiving Dinner Planner (2026 edition)</h2>
+    <>
+      <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+        <header className="flex items-center gap-4">
+          {/* Cropped to the badge and clipped round, so none of the image's own background shows */}
+          <img src="/gobble.png" alt="" width="96" height="96" className="h-20 w-20 shrink-0 rounded-full sm:h-24 sm:w-24" />
+          <div>
+            <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">Thanksgiving Dinner Planner</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="rounded-full border-2 border-ink bg-cream px-3 text-sm font-medium">2026 edition</p>
+              <button
+                ref={helpButton}
+                onClick={() => setHelpOpen(true)}
+                className="tab gap-1 bg-cream px-2.5 py-0 text-sm hover:bg-white"
+              >
+                <HelpCircle size={16} strokeWidth={2.5} />
+                How it works
+              </button>
+            </div>
+          </div>
+        </header>
 
-      {error && (
-        <div role="alert" className="p-3 border border-red-300 rounded bg-red-50 text-red-800">{error}</div>
-      )}
+        {error && (
+          <div role="alert" className="card flex items-center gap-3 px-4 py-3 font-medium">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-tomato font-bold"
+            >
+              !
+            </span>
+            <span>{error}</span>
+          </div>
+        )}
 
-      {/* Add new dish */}
-      <div className="flex flex-wrap gap-2">
-        <input
-          type="text"
-          value={newDish}
-          onChange={(e) => setNewDish(e.target.value)}
-          placeholder="Add a new dish..."
-          className="flex-1 min-w-[7rem] p-2 border rounded"
-          onKeyDown={(e) => e.key === 'Enter' && addDish()}
-        />
-        <select
-          aria-label="Category for the new dish"
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          className="p-2 border rounded bg-white"
-        >
-          <option value="">Category: auto</option>
-          {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
-        </select>
-        <button
-          onClick={addDish}
-          className="p-2 bg-green-600 text-white rounded hover:bg-green-700"
-          title="Add dish"
-        >
-          <Plus size={20} />
-        </button>
+        {/* Add new dish */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            aria-label="New dish"
+            value={newDish}
+            onChange={(e) => setNewDish(e.target.value)}
+            placeholder="Add a new dish..."
+            className="field min-w-[7rem] flex-1"
+            onKeyDown={(e) => e.key === 'Enter' && addDish()}
+          />
+          <select
+            aria-label="Category for the new dish"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            className="field"
+          >
+            <option value="">Category: auto</option>
+            {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
+          </select>
+          <button
+            onClick={addDish}
+            className="round-button h-11 w-11 bg-tomato shadow-ground-sm active:shadow-none"
+            title="Add dish"
+          >
+            <Plus size={22} strokeWidth={3} />
+          </button>
+        </div>
+
+        {/* Views */}
+        <nav aria-label="Views" className="flex flex-wrap gap-2">
+          {VIEWS.map(({ id, label, aside }) => {
+            const active = route.view === id;
+            const idle = aside ? 'bg-leaf hover:bg-leaf/80' : 'bg-cream hover:bg-white';
+            return (
+              <button
+                key={id}
+                onClick={() => goTo(id, id === 'mine' ? person : '')}
+                aria-pressed={active}
+                className={`tab ${active ? 'bg-ink text-cream' : idle}`}
+              >
+                {aside && <Clock size={16} strokeWidth={2.5} />}
+                {label}
+                {counts[id] !== null && (
+                  <span className={`rounded-full px-2 text-sm ${active ? 'bg-cream text-ink' : 'bg-sand'}`}>
+                    {counts[id]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {route.view === 'all' && groupByCategory(dishes).map((group) => (
+          <Card key={group.category} title={group.category} aside={group.dishes.length}>
+            {list(group.dishes, false)}
+          </Card>
+        ))}
+
+        {route.view === 'mine' && (
+          <>
+            <label className="flex flex-wrap items-center gap-2 text-lg font-medium">
+              <span>Who are you?</span>
+              <select
+                value={person}
+                onChange={(e) => pickPerson(e.target.value)}
+                className="field text-base font-normal"
+              >
+                <option value="">Pick a name...</option>
+                {(people.includes(person) || !person ? people : [...people, person]).map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <Card title={mine.length > 0 && `${person} is bringing ${plural(mine.length, 'dish', 'dishes')}`}>
+              {!person && note('Pick your name to see what you’re bringing. Names appear here once they’re assigned a dish.')}
+              {person && mine.length === 0 && note(`Nothing is assigned to ${person} yet.`)}
+              {mine.length > 0 && list(mine, true)}
+            </Card>
+          </>
+        )}
+
+        {route.view === 'pies' && (
+          <Card
+            title={pies.length > 0 && `${plural(pies.length, 'pie', 'pies')} so far`}
+            aside={pies.length > 0 ? `${pies.filter(isUnclaimed).length} unclaimed` : null}
+          >
+            {pies.length === 0
+              ? note('No pies yet. Any dish with “pie” in its name shows up here.')
+              : list(pies, false)}
+          </Card>
+        )}
+
+        {route.view === 'unclaimed' && (
+          <Card title={unclaimed.length > 0 && `${plural(unclaimed.length, 'dish needs', 'dishes need')} someone`}>
+            {unclaimed.length === 0
+              ? note('Every dish has someone bringing it.')
+              : list(unclaimed, true)}
+          </Card>
+        )}
+
+        {route.view === 'schedule' && <Schedule />}
+
+        <datalist id="people">
+          {people.map((name) => <option key={name} value={name} />)}
+        </datalist>
       </div>
 
-      {/* Views */}
-      <nav aria-label="Views" className="flex flex-wrap gap-2">
-        {VIEWS.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => goTo(id, id === 'mine' ? person : '')}
-            aria-pressed={route.view === id}
-            className={`px-3 py-1 rounded-full border text-sm ${
-              route.view === id
-                ? 'bg-green-600 border-green-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {label}{counts[id] !== null && ` (${counts[id]})`}
-          </button>
-        ))}
-      </nav>
-
-      {route.view === 'all' && groupByCategory(dishes).map((group) => (
-        <section key={group.category} className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{group.category}</h3>
-          {list(group.dishes, false)}
-        </section>
-      ))}
-
-      {route.view === 'mine' && (
-        <section className="space-y-4">
-          <label className="flex flex-wrap items-center gap-2">
-            <span>Who are you?</span>
-            <select
-              value={person}
-              onChange={(e) => pickPerson(e.target.value)}
-              className="p-2 border rounded bg-white"
-            >
-              <option value="">Pick a name...</option>
-              {(people.includes(person) || !person ? people : [...people, person]).map((name) => (
-                <option key={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-          {!person && note('Pick your name to see what you’re bringing. Names appear here once they’re assigned a dish.')}
-          {person && mine.length === 0 && note(`Nothing is assigned to ${person} yet.`)}
-          {mine.length > 0 && note(`${person} is bringing ${plural(mine.length, 'dish', 'dishes')}:`)}
-          {list(mine, true)}
-        </section>
-      )}
-
-      {route.view === 'pies' && (
-        <section className="space-y-4">
-          {pies.length === 0
-            ? note('No pies yet. Any dish with “pie” in its name shows up here.')
-            : note(`${plural(pies.length, 'pie', 'pies')} so far, ${pies.filter(isUnclaimed).length} still unclaimed.`)}
-          {list(pies, false)}
-        </section>
-      )}
-
-      {route.view === 'unclaimed' && (
-        <section className="space-y-4">
-          {unclaimed.length === 0 && note('Every dish has someone bringing it.')}
-          {list(unclaimed, true)}
-        </section>
-      )}
-
-      <datalist id="people">
-        {people.map((name) => <option key={name} value={name} />)}
-      </datalist>
-    </div>
+      {/* Outside the spaced column so it can cover the whole screen */}
+      {helpOpen && <HelpDialog onClose={closeHelp} />}
+    </>
   );
 };
 

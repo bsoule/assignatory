@@ -1,3 +1,39 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-sand font-sans text-ink antialiased;
+  }
+}
+
+/* The turkey icon's look: flat fills, a thick ink outline, fully rounded shapes. */
+@layer components {
+  .card {
+    @apply overflow-hidden rounded-2xl border-2 border-ink bg-cream shadow-ground;
+  }
+
+  .field {
+    @apply rounded-xl border-2 border-ink bg-white px-3 py-2 text-ink placeholder:text-ink/60;
+  }
+
+  .round-button {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-ink transition-transform active:translate-y-0.5;
+  }
+
+  .ghost-button {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/70 hover:bg-sand hover:text-ink;
+  }
+
+  .field:focus-visible,
+  .round-button:focus-visible,
+  .ghost-button:focus-visible,
+  .tab:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-ink;
+  }
+
+  .tab {
+    @apply inline-flex items-center gap-2 rounded-full border-2 border-ink px-3 py-1 font-medium transition-transform active:translate-y-0.5;
+  }
+}
