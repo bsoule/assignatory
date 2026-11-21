@@ -1,0 +1,940 @@
+<!doctype html>
+<!-- Fasciculus hic a sourcery generatus est, numquam manu scriptus.
+     Memoria dialogi in tabulis iuxta positis (sourcery.LOGIN.jsonl)
+     servatur, ex quibus generatio proxima eum denuo reddit atque
+     superscribit. Noli emendare. -->
+<html lang="und">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%90%9D%3C/text%3E%3C/svg%3E">
+<meta name="description" content="21 prompts · 2026-11-20 – 2026-11-21 · +807 −260">
+<meta property="og:title" content="tgdinner">
+<meta property="og:description" content="21 prompts · 2026-11-20 – 2026-11-21 · +807 −260">
+<title>tgdinner</title>
+<style>
+/* Beeminder hive: honey paper, goldenrod
+   accents throughout. The goldenrod is darkened for text contrast;
+   the stripe gets the full #FFB300. One palette: the page reads the same
+   whatever theme the viewer's system asks for (a second palette would be
+   a branch). */
+:root {
+  --bg: #faf0d8;
+  --ink: #1c1508;
+  --muted: #77673f;
+  --faint: #a8945e;
+  --line: #eadbb4;
+  --reply-bg: #f4e9cf;
+  --reply-ink: #4a3f22;
+  --accent: #a97b00;
+  --stripe: #ffb300;
+  /* Diffstat mark pair, teal for added and red for deleted, validated
+     against the page surface (CVD-simulated ΔE >= 10, contrast >= 3:1;
+     a plain green fails deutan/protan separation against these reds). */
+  --diff-add: #00785a;
+  --diff-del: #cf222e;
+  /* Provider identity quartet for the exchange edge stripe and meta-line
+     chip, validated against the page surface: within the quartet
+     the worst CVD-simulated pair is 8.7 (inside the
+     original trio; the olive's own worst pair is 11.7), normal-vision
+     ΔE >= 16.9, contrast >= 3:1. Against the diffstat pair the olive sits
+     6.3 under simulation — the 6–8 band that is legal only with
+     secondary encoding, which these marks have: a different mark class, and
+     the agent's name beside every chip. Identity never rides on color
+     alone. */
+  --claude: #b02777;
+  --codex: #076f9e;
+  --copilot: #6a2fc2;
+  --antigravity: #656902;
+  --measure: 44rem;
+  --serif: "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  border-top: 4px solid var(--stripe);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+main {
+  width: min(calc(100% - 2.5rem), var(--measure));
+  margin: 0 auto;
+  padding: 5rem 0 8rem;
+}
+.masthead { padding-bottom: 2rem; }
+.generator {
+  margin: 0 0 1.1rem;
+  font-family: var(--sans);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  color: var(--faint);
+}
+.generator a { color: inherit; text-decoration: none; }
+.generator a:hover { color: var(--accent); text-decoration: underline; }
+h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 5.5vw, 2.9rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.deck, .repo-path {
+  margin: .6rem 0 0;
+  color: var(--faint);
+  font-family: var(--sans);
+  font-size: .74rem;
+  letter-spacing: .03em;
+  font-variant-numeric: tabular-nums;
+}
+.repo-path { font-family: var(--mono); font-size: .7rem; overflow-wrap: anywhere; }
+.repo-path a { color: var(--muted); text-decoration: none; }
+.repo-path a:hover { color: var(--accent); text-decoration: underline; }
+.controls {
+  margin: .9rem 0 0;
+  font-family: var(--sans);
+  font-size: .7rem;
+  letter-spacing: .04em;
+  color: var(--faint);
+}
+.controls a { color: var(--muted); text-decoration: none; }
+.controls a:hover { color: var(--accent); text-decoration: underline; }
+/* Minimap: the dialog at a glance, added lines above the midline and
+   deleted below, one clickable sliver per prompt. */
+.minimap { display: block; height: 48px; margin: 1.6rem 0 0; }
+.minimap .hit { fill: transparent; }
+.minimap .add { fill: var(--diff-add); }
+.minimap .del { fill: var(--diff-del); }
+.minimap .nil { fill: var(--line); }
+.minimap a:hover .hit { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+/* The reading-progress rail, the device Asterisk magazine runs down its
+   left margin: a goldenrod column — the top stripe's vertical sibling —
+   fixed to the viewport's left edge, its height the fraction of the page
+   scrolled past, invisible until the reader has actually set off (the
+   script adds .show past 300px of scroll). One tick per day header hangs
+   on the same percent scale, so the bar's tip touches a day's tick at the
+   exact moment that day reaches the top of the viewport; a tick's label
+   appears on hover and clicking it jumps to the day. The bar's width
+   cedes continuously as the viewport narrows toward the text column, and
+   below 54rem the marks leave entirely. */
+#progress .progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: clamp(6px, calc((100vw - var(--measure)) / 2 - 12px), 32px);
+  height: 0;
+  opacity: 0;
+  background: var(--stripe);
+  transition: opacity .1s linear;
+  z-index: 10;
+}
+#progress .daymark {
+  position: fixed;
+  left: 0;
+  z-index: 11;
+  display: flex;
+  margin-top: -12px;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: .65rem;
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  transform: translateX(-100%);
+  transition: transform .2s ease;
+}
+#progress .tick {
+  width: 46px;
+  height: 12px;
+  border-bottom: 1px solid var(--ink);
+}
+#progress .text {
+  margin-left: .5rem;
+  padding: .1rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: .3rem;
+  background: var(--bg);
+  opacity: 0;
+  transition: opacity .2s ease-in;
+}
+#progress .daymark:hover .text { opacity: 1; }
+#progress.show .progress-bar { opacity: 1; }
+#progress.show .daymark { transform: none; }
+@media (max-width: 54rem) {
+  #progress .daymark { display: none; }
+}
+::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.exchange:target {
+  background: var(--reply-bg);
+  border-radius: .45rem;
+  padding: 1.1rem 1.25rem;
+  margin: 2.6rem -1.25rem 0;
+}
+/* The clock. Every time and date on the page is written in UTC, so the
+   file reads the same whoever runs sourcery, and each day header names
+   that zone at the far end of its rule (the script swaps in the viewer's
+   own zone, see JS): the agent name's ink at regular weight, quieter than
+   the date but never as faint as the meta line, since it is there to
+   stop a misreading. */
+.day {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 3.8rem 0 0;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  font-variant-numeric: tabular-nums;
+}
+.day .zone { color: var(--muted); font-weight: 400; }
+.exchange { margin: 2.6rem 0 0; border-left: 3px solid var(--provider); padding-left: 0.85rem; }
+.exchange.claude { --provider: var(--claude); }
+.exchange.codex { --provider: var(--codex); }
+.exchange.copilot { --provider: var(--copilot); }
+.exchange.antigravity { --provider: var(--antigravity); }
+.exchange.claudeai { --provider: var(--claude); }
+.exchange.codebuff { --provider: var(--claude); }
+/* The exchange's header: the speaker label — the human's display name
+   set above their turn, the way a play script or an interview transcript
+   names whoever speaks next — and across from it, on the label's
+   baseline, the prompt's time. The label is in the human's own serif, its
+   lowercase as small capitals and any capitals kept full size (the
+   name is data, so its case must survive), in the agent name's ink;
+   the meta line no longer repeats the name. */
+.exchange > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.1rem;
+  margin: 0 0 .1rem;
+}
+.speaker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.06rem;
+  font-variant-caps: small-caps;
+  letter-spacing: .08em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+/* The prompt's time, the exchange's permalink, closes the header row,
+   never squeezed by a long label, set as the meta line is so it stays as
+   quiet beside the label as it was in that line. */
+.exchange > header a.anchor {
+  flex: none;
+  color: var(--faint);
+  font-family: var(--sans);
+  font-size: .68rem;
+  letter-spacing: .05em;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+.exchange > header a.anchor:hover { text-decoration: underline; }
+/* The prompt's diffstat closes the meta line, with the agent's other
+   numbers, never squeezed by the items before it. Numbers
+   wear the metadata ink; polarity lives in the blocks (and in the signs and
+   the fixed added-first order). */
+.diffstat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.diffstat .blocks { display: inline-flex; gap: 2px; }
+.diffstat .blocks span { width: 7px; height: 7px; border-radius: 2px; }
+.diffstat .add { background: var(--diff-add); }
+.diffstat .del { background: var(--diff-del); }
+.diffstat .nil { background: var(--line); }
+pre.prompt {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+  font: inherit;
+  font-size: 1.06rem;
+  line-height: 1.62;
+}
+.attachments {
+  margin-top: .75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.attachments img {
+  max-width: 100%;
+  max-height: 20rem;
+  border: 1px solid var(--line);
+  border-radius: .3rem;
+}
+details { margin: .55rem 0 0; }
+/* The meta line: the agent's line under the prompt, and the reply's
+   toggle. It spans the column and holds no link, so a click anywhere on
+   it does the one thing. */
+summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .6rem;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  color: var(--faint);
+  font-family: var(--sans);
+  font-size: .68rem;
+  letter-spacing: .05em;
+  font-variant-numeric: tabular-nums;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "▸";
+  color: var(--accent);
+  font-size: .62rem;
+  transition: transform .12s ease;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+summary:hover { color: var(--muted); }
+/* The agent's numbers, the working time then the diffstat, sit at the
+   line's far end: the first of them takes the free space on its left. */
+summary > .elapsed, summary > .diffstat { margin-left: auto; }
+summary > .elapsed + .diffstat { margin-left: 0; }
+/* The agent's marks in the meta line: a small square chip wearing the
+   provider color (the same hue as the edge stripe) and the agent's name a
+   step louder than the rest of the line — promoted ink, never the mark
+   color, so the reading survives any color deficiency. */
+.chip { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--provider); }
+.agent { color: var(--muted); font-weight: 600; }
+/* The session's title, quoted so it reads as a name. */
+.title::before { content: "“"; }
+.title::after { content: "”"; }
+/* INVIOLABLE: machine-generated prose renders only inside a .machine
+   container, in a style all its own: a "slip", a box one tint step off
+   the page with a hairline frame, set in monospace and green ink, never
+   mistakable for the
+   human's serif. The containers are .reply (agent replies) and .ballot
+   (multiple-choice questions the agent posed and the option labels it
+   wrote, including the ones the human picked). Both are closed
+   disclosures: .reply hides behind the meta line, and .ballot is a
+   disclosure of its own, a slip showing the first line of its question
+   until opened.
+   The slip is quiet on purpose: against the page it is 1.06:1, so no
+   machine container is a dark mass, and the human's ink on the page
+   (15.96:1) outdoes every ink here, so typed words are the darkest text.
+   On the slip the ink reads at 7.15:1; the bright ink, for links and the
+   human's pick, at 8.58:1; the dim ink, for ballot questions, unpicked
+   options and quotations, at 4.89:1. Code sits on a deeper tint of the
+   slip (9% of the ink mixed in), where the ink reads at 6.24:1. */
+.machine {
+  --m-bg: #f4e9cf;
+  --m-ink: #14572e;
+  --m-bright: #0f4a26;
+  --m-dim: #3f6e50;
+  --m-line: #8fb39a;
+  --m-code: #e0dcc1;
+  font-family: var(--mono);
+  background: var(--m-bg);
+  color: var(--m-ink);
+  border: 1px solid var(--m-line);
+}
+.ballot {
+  margin: 1rem 0 .6rem;
+  padding: .65rem .85rem;
+  border-radius: .3rem;
+  font-size: .8rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+/* The ballot's toggle is its question, set as the slip is and not as the
+   meta line. The question is the toggle's one part beside the triangle
+   and may shrink under its text's width, so a closed ballot shows the
+   question's first line, cut with an ellipsis; open, the question reads
+   whole, line breaks kept, above the options. */
+.ballot > summary { font: inherit; letter-spacing: inherit; user-select: text; }
+.ballot[open] > summary { margin-bottom: .35rem; }
+.ballot-question {
+  flex: 1;
+  min-width: 0;
+  color: var(--m-dim);
+  font-size: .74rem;
+  white-space: pre-wrap;
+}
+.ballot:not([open]) .ballot-question { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ballot .option { color: var(--m-dim); }
+/* The human's pick: its check mark and its weight tell it from the other
+   options; the two inks are too close (1.75:1) to carry that alone. */
+.ballot .option.picked { color: var(--m-bright); font-weight: 600; }
+.exchange > header + .ballot { margin-top: .3rem; }
+.reply {
+  margin-top: .8rem;
+  padding: 1rem 1.15rem;
+  border-radius: .35rem;
+  font-size: .82rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.reply > :first-child { margin-top: 0; }
+.reply > :last-child { margin-bottom: 0; }
+.reply p { margin: .8rem 0; }
+.reply h2, .reply h3, .reply h4, .reply h5, .reply h6 {
+  margin: 1.3rem 0 .55rem;
+  line-height: 1.25;
+}
+.reply h2 { font-size: 1.05rem; }
+.reply h3, .reply h4, .reply h5, .reply h6 { font-size: .95rem; }
+.reply ul, .reply ol { margin: .75rem 0; padding-left: 1.4rem; }
+.reply li + li { margin-top: .25rem; }
+.reply blockquote {
+  margin: .9rem 0;
+  padding-left: .9rem;
+  border-left: 2px solid var(--m-line);
+  color: var(--m-dim);
+}
+.reply code { font-size: .95em; }
+.reply :not(pre) > code {
+  padding: .05em .25em;
+  border-radius: .25rem;
+  background: var(--m-code);
+}
+.reply pre.code {
+  margin: .9rem 0;
+  padding: .9rem 1rem;
+  overflow-x: auto;
+  white-space: pre;
+  border-radius: .3rem;
+  background: var(--m-code);
+}
+.reply a { color: var(--m-bright); }
+.reply.empty { font-style: italic; color: var(--m-dim); }
+/* On a screen with room beside the column (the column's 44rem and, each
+   side, an 8rem header, its 1.6rem gap and the rail's 46px day ticks,
+   with a 17px scrollbar to spare), the header
+   leaves the column and hangs to its left, the way a play script sets
+   the speaker's name beside the speech: the label on the prompt's first
+   line (it takes the prompt's line height), the time under it. A
+   narrower screen, and print, keep the header as the row above the
+   prompt. */
+@media screen and (min-width: 70rem) {
+  .exchange { position: relative; }
+  .exchange > header {
+    position: absolute;
+    right: calc(100% + 1.6rem);
+    width: 8rem;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+  .speaker { line-height: 1.62; text-align: right; }
+}
+@media print {
+  :root { --bg: white; --ink: black; --faint: #777; --muted: #555; --line: #bbb; --reply-bg: white; --reply-ink: #333; }
+  #progress { display: none; }
+  main { width: 100%; padding: 0; }
+  .day { break-after: avoid; }
+  .exchange { break-inside: avoid; }
+  details > .reply { display: block !important; }
+  summary::before { content: ""; }
+}
+</style>
+</head>
+<body>
+<div id="progress">
+<div class="progress-bar" aria-hidden="true"></div>
+<nav class="daymarks" aria-label="Index dierum">
+<a class="daymark" href="#d2026-11-20"><span class="tick"></span><span class="text">2026-11-20 Friday</span></a>
+<a class="daymark" href="#d2026-11-21"><span class="tick"></span><span class="text">2026-11-21 Saturday</span></a>
+</nav>
+</div>
+<main>
+<header class="masthead">
+  <p class="generator"><a href="https://github.com/beeminder/sourcery">generated by sourcery</a></p>
+  <h1>tgdinner</h1>
+  <p class="deck">21 prompts · <span class="range"><time datetime="2026-11-20">2026-11-20</time> – <time datetime="2026-11-21">2026-11-21</time></span> · +807 −260</p>
+  <p class="repo-path"><a href="https://github.com/bsoule/assignatory">github.com/bsoule/assignatory</a></p>
+  <p class="controls"><a href="#" data-omnia="open">expand all</a> · <a href="#" data-omnia="close">collapse all</a></p>
+  <svg class="minimap" viewBox="0 0 63 64" preserveAspectRatio="none" style="width:min(100%, 126px)" aria-label="Tabula dialogi, rogatio post rogationem"><a href="#p1"><title>18:59</title><rect class="hit" x="0" y="0" width="3" height="64"/><rect class="nil" x="0" y="31" width="2" height="2"/></a><a href="#p2"><title>19:44</title><rect class="hit" x="3" y="0" width="3" height="64"/><rect class="nil" x="3" y="31" width="2" height="2"/></a><a href="#p3"><title>19:46 +79 −4</title><rect class="hit" x="6" y="0" width="3" height="64"/><rect class="add" x="6" y="18.8" width="2" height="13.2"/><rect class="del" x="6" y="32" width="2" height="3"/></a><a href="#p4"><title>20:50</title><rect class="hit" x="9" y="0" width="3" height="64"/><rect class="nil" x="9" y="31" width="2" height="2"/></a><a href="#p5"><title>21:08</title><rect class="hit" x="12" y="0" width="3" height="64"/><rect class="nil" x="12" y="31" width="2" height="2"/></a><a href="#p6"><title>21:39</title><rect class="hit" x="15" y="0" width="3" height="64"/><rect class="nil" x="15" y="31" width="2" height="2"/></a><a href="#p7"><title>21:45 +409 −166</title><rect class="hit" x="18" y="0" width="3" height="64"/><rect class="add" x="18" y="2" width="2" height="30"/><rect class="del" x="18" y="32" width="2" height="19.1"/></a><a href="#p8"><title>22:43</title><rect class="hit" x="21" y="0" width="3" height="64"/><rect class="nil" x="21" y="31" width="2" height="2"/></a><a href="#p9"><title>22:51</title><rect class="hit" x="24" y="0" width="3" height="64"/><rect class="nil" x="24" y="31" width="2" height="2"/></a><a href="#p10"><title>22:58 +67 −9</title><rect class="hit" x="27" y="0" width="3" height="64"/><rect class="add" x="27" y="19.9" width="2" height="12.1"/><rect class="del" x="27" y="32" width="2" height="4.5"/></a><a href="#p11"><title>23:08</title><rect class="hit" x="30" y="0" width="3" height="64"/><rect class="nil" x="30" y="31" width="2" height="2"/></a><a href="#p12"><title>23:15</title><rect class="hit" x="33" y="0" width="3" height="64"/><rect class="nil" x="33" y="31" width="2" height="2"/></a><a href="#p13"><title>23:26 +84 −0</title><rect class="hit" x="36" y="0" width="3" height="64"/><rect class="add" x="36" y="18.4" width="2" height="13.6"/></a><a href="#p14"><title>23:32 +135 −1</title><rect class="hit" x="39" y="0" width="3" height="64"/><rect class="add" x="39" y="14.8" width="2" height="17.2"/><rect class="del" x="39" y="32" width="2" height="1.5"/></a><a href="#p15"><title>23:37</title><rect class="hit" x="42" y="0" width="3" height="64"/><rect class="nil" x="42" y="31" width="2" height="2"/></a><a href="#p16"><title>23:41 +33 −80</title><rect class="hit" x="45" y="0" width="3" height="64"/><rect class="add" x="45" y="23.5" width="2" height="8.5"/><rect class="del" x="45" y="32" width="2" height="13.3"/></a><a href="#p17"><title>23:56</title><rect class="hit" x="48" y="0" width="3" height="64"/><rect class="nil" x="48" y="31" width="2" height="2"/></a><a href="#p18"><title>00:03</title><rect class="hit" x="51" y="0" width="3" height="64"/><rect class="nil" x="51" y="31" width="2" height="2"/></a><a href="#p19"><title>00:42</title><rect class="hit" x="54" y="0" width="3" height="64"/><rect class="nil" x="54" y="31" width="2" height="2"/></a><a href="#p20"><title>00:45</title><rect class="hit" x="57" y="0" width="3" height="64"/><rect class="nil" x="57" y="31" width="2" height="2"/></a><a href="#p21"><title>00:46</title><rect class="hit" x="60" y="0" width="3" height="64"/><rect class="nil" x="60" y="31" width="2" height="2"/></a></svg>
+</header>
+<h2 class="day" id="d2026-11-20"><time datetime="2026-11-20">2026-11-20 Friday</time> <span class="zone">UTC</span></h2>
+<article class="exchange claude" id="p1" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p1" title="2026-11-20 Friday 18:59:22 UTC"><time datetime="2026-11-20T18:59:22.266000+00:00">18:59</time></a></header>
+<pre class="prompt">this app was built and hosted on replit. what's its data store, how would i run it locally to test it out and modify, and where else could i host the app other than replit?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 2m26s · 3m14s wall-clock time</span></summary>
+<div class="reply machine"><p>Still on it: I&#x27;ve confirmed the app boots locally in a scratch copy but its API fails without Replit&#x27;s database, so I&#x27;m now testing a small local fallback before writing up the answer.</p>
+<p><strong>Data store:</strong> it&#x27;s Replit&#x27;s built-in key-value database, accessed through <code>@replit/database</code> in <code>server.js</code>. The whole dish list is one JSON array under a single key, <code>dishes</code>. <code>GET /api/dishes</code> reads it and <code>POST /api/dishes</code> overwrites it, so two people saving at once can clobber each other.</p>
+<h3>Running it locally</h3>
+<p>It won&#x27;t work as-is: the Replit database is reached through credentials that only exist on Replit, so locally the page loads but every API call returns a 500. I tested this in a scratch copy and haven&#x27;t changed your repo.</p>
+<p>Two things need to change:</p>
+<ol><li><strong>A local stand-in for the database.</strong> Replace the <code>Database</code> require and <code>const db = new Database()</code> in <code>server.js</code> with a fallback to a JSON file when not on Replit:</li></ol>
+<pre class="code"><code data-language="js">   const fs = require(&#x27;fs&#x27;);
+   const path = require(&#x27;path&#x27;);
+
+   function makeStore() {
+     if (process.env.REPLIT_DB_URL || fs.existsSync(&#x27;/tmp/replitdb&#x27;)) {
+       const Database = require(&#x27;@replit/database&#x27;);
+       return new Database();
+     }
+     const file = process.env.DATA_FILE || path.join(__dirname, &#x27;data.json&#x27;);
+     const read = () =&gt; {
+       try { return JSON.parse(fs.readFileSync(file, &#x27;utf8&#x27;)); } catch { return {}; }
+     };
+     return {
+       get: async (key) =&gt; read()[key] ?? null,
+       set: async (key, value) =&gt;
+         fs.writeFileSync(file, JSON.stringify({ ...read(), [key]: value }, null, 2)),
+     };
+   }
+   const db = makeStore();</code></pre>
+<ol><li><strong>A different API port.</strong> Port 3000 on your machine is taken by a Rails app in Docker. Under your default Node 14, the frontend&#x27;s <code>/api</code> calls went to that Rails app instead of this one.</li></ol>
+<ul><li>In <code>server.js</code>: <code>const port = process.env.API_PORT || 3000;</code></li><li>In <code>vite.config.js</code>: <code>target: `http://127.0.0.1:${process.env.API_PORT || 3000}` </code></li></ul>
+<p>Then:</p>
+<pre class="code"><code data-language="sh">npm install
+API_PORT=3001 npm run start
+# open http://localhost:5000</code></pre>
+<p>With those changes, reads and writes worked and persisted to <code>data.json</code> on both Node 14.19.1 and Node 22.19.0. I only tested with <code>curl</code>, not by clicking through the page in a browser. Replit runs Node 20, so I&#x27;d put <code>nodejs 22.19.0</code> in a <code>.tool-versions</code> file in the repo, and add <code>data.json</code> to <code>.gitignore</code>.</p>
+<p>My test also sent a few <code>GET</code>/<code>POST /api/dishes</code> requests to your Docker Rails app; they returned routing errors and nothing else.</p>
+<p>To bring over the real data, save the output of <code>/api/dishes</code> from the live Replit app and put it in <code>data.json</code> as <code>{&quot;dishes&quot;: [...]}</code>.</p>
+<h3>Hosting elsewhere</h3>
+<p>Any other host needs two changes first:</p>
+<ul><li><strong>Storage:</strong> something other than the Replit database, such as the JSON file above or a hosted key-value store.</li><li><strong>Serving:</strong> <code>npm run start</code> runs the Vite dev server, which is also what Replit serves in production. Elsewhere, Express should serve the built <code>dist/</code> folder and listen on the host&#x27;s <code>PORT</code>. <code>vite build</code> works; I haven&#x27;t written or tested the Express part.</li></ul>
+<p>| Option | Storage | Code change |<br>|---|---|---|<br>| Fly.io or Railway | JSON file on a persistent volume | Smallest: the fallback above plus Express serving <code>dist/</code> |<br>| Render | Hosted Postgres or Redis, since its disk is not persistent by default | Small, plus swapping the store |<br>| Cloudflare Workers, Vercel or Netlify | Their key-value store (one key is all you need) | Rewrite <code>server.js</code> as two small functions; frontend deploys as static files |<br>| A server you already run | JSON file or SQLite | Same as Fly.io, behind your own reverse proxy |</p>
+<p>I&#x27;d go with Fly.io or Railway with a volume, because the app keeps its current shape. Cloudflare Workers with KV is the better choice if you want it free and maintenance-free and don&#x27;t mind the small rewrite. I haven&#x27;t checked current pricing or free tiers for any of these.</p>
+<p>If you&#x27;d like, I can apply the local-run changes to the repo.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p2" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p2" title="2026-11-20 Friday 19:44:24 UTC"><time datetime="2026-11-20T19:44:24.400000+00:00">19:44</time></a></header>
+<pre class="prompt">hm. i'm curious about the cloudflare version, but i do also have at least one other thing on fly.io. which is gonna have fewer steps for me to do to get it up and running?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 27s · 28s wall-clock time</span></summary>
+<div class="reply machine"><p><strong>Fly.io is fewer steps for you</strong>, mainly because you&#x27;re already set up: <code>fly</code> is installed and has a saved login on this machine, while there&#x27;s no sign of Cloudflare&#x27;s CLI or a login here.</p>
+<p>In both cases I&#x27;d write the code and config; what&#x27;s left for you is:</p>
+<p>| | Fly.io | Cloudflare Workers |<br>|---|---|---|<br>| Account and CLI | Already done | Create an account if you don&#x27;t have one, then <code>npx wrangler login</code> |<br>| Storage setup | A 1 GB volume, declared in <code>fly.toml</code> | <code>npx wrangler kv namespace create</code>, then paste the ID it prints into the config |<br>| Deploy | <code>fly launch</code> once, then <code>fly deploy</code> for updates | <code>npm run build &amp;&amp; npx wrangler deploy</code> |<br>| Code change | Small: the JSON-file store I already tested, plus Express serving the built frontend | Bigger: <code>server.js</code> is rewritten as a Worker and local dev switches to <code>wrangler dev</code> |<br>| Cost | Small monthly charge for the machine and volume | Free at this size |</p>
+<p>So Fly is roughly two commands for you, and Cloudflare is three or four plus possibly a signup.</p>
+<p>Things I&#x27;m working from memory on, not checked against current docs:</p>
+<ul><li><strong>Fly volume:</strong> I believe <code>fly launch</code> creates the volume automatically when <code>fly.toml</code> declares one. If it doesn&#x27;t, that&#x27;s one extra <code>fly volumes create</code> command.</li><li><strong>Wrangler and Node:</strong> Wrangler needs a newer Node than your default 14; your installed 22 should be fine.</li><li><strong>Pricing:</strong> I haven&#x27;t looked up current numbers for either.</li></ul>
+<p>The Cloudflare version is the one to pick if free hosting and no machine to keep running matter more than the extra one-time setup. Otherwise I&#x27;d go with Fly.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p3" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p3" title="2026-11-20 Friday 19:46:26 UTC"><time datetime="2026-11-20T19:46:26.742000+00:00">19:46</time></a></header>
+<pre class="prompt">ok, let's go with fly.io</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 2m44s · 3m38s wall-clock time</span> <span class="diffstat">+79 −4 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="add"></span><span class="add"></span><span class="add"></span><span class="del"></span></span></span></summary>
+<div class="reply machine"><p>Code changes are in; I&#x27;m now writing the Fly config and test-building the Docker image locally to confirm the production setup works before handing you the deploy command.</p>
+<p>The repo is ready for Fly, and the only step left is the deploy itself, which I haven&#x27;t run because it creates a billable, public app on your account.</p>
+<p>From the repo, run:</p>
+<pre class="code"><code data-language="sh">fly launch --copy-config --ha=false</code></pre>
+<p>It will propose an app name, org and region for you to confirm, then build and deploy. <code>--ha=false</code> keeps it to one machine, which the file-based storage needs. Later updates are just <code>fly deploy</code>.</p>
+<h3>What I changed</h3>
+<ul><li><strong><code>server.js</code></strong>: uses a JSON file for storage when not on Replit, serves the built frontend, and takes its port from <code>API_PORT</code>.</li><li><strong><code>vite.config.js</code></strong>: the dev proxy follows <code>API_PORT</code>, so you can avoid your Docker app on port 3000.</li><li><strong><code>Dockerfile</code>, <code>.dockerignore</code>, <code>fly.toml</code></strong>: new. The Fly config mounts a 1 GB volume at <code>/data</code> for the dish list and lets the machine stop when idle.</li><li><strong><code>.gitignore</code></strong>: ignores the local <code>data.json</code>.</li></ul>
+<p>Nothing is committed.</p>
+<h3>What I tested</h3>
+<ul><li><strong>Production image:</strong> built and ran it locally in Docker with a volume. The page and its JavaScript loaded, the API read and wrote, and the data survived a container restart. The test container, volume and image are removed.</li><li><strong>Local dev:</strong> dependencies are now installed in the repo. <code>API_PORT=3001 npm run start</code> worked under your default Node 14, serving on http://localhost:5000.</li><li><strong>Not tested:</strong> the Fly deploy itself, clicking through the page in a browser, and the Replit code path, which I left in place.</li></ul>
+<h3>If something goes wrong</h3>
+<ul><li><strong>Volume:</strong> the first deploy should create the <code>data</code> volume automatically. If it complains about a missing volume, run <code>fly volumes create data --size 1</code> and then <code>fly deploy</code>.</li><li><strong>App name:</strong> the name is filled into <code>fly.toml</code> by <code>fly launch</code>; if the default is taken, add <code>--name &lt;something&gt;</code>.</li></ul>
+<p>The Fly app starts with an empty list and seeds the six default dishes on first visit. If you want the dishes from the Replit app, this copies them over while it is still running:</p>
+<pre class="code"><code data-language="sh">curl -s https://&lt;your-replit-url&gt;/api/dishes | curl -X POST -H &#x27;Content-Type: application/json&#x27; -d @- https://&lt;your-app&gt;.fly.dev/api/dishes</code></pre>
+<p>If you&#x27;d rather I run the launch, give me the app name and region and I&#x27;ll do it.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p4" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p4" title="2026-11-20 Friday 20:50:42 UTC"><time datetime="2026-11-20T20:50:42.460000+00:00">20:50</time></a></header>
+<pre class="prompt">i ran the launch command and it is currently updating the flyctl package.</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 7s</span></summary>
+<div class="reply machine"><p>That&#x27;s expected: your <code>fly</code> was a build from July, so it&#x27;s catching up before doing anything else. It hasn&#x27;t touched your app yet.</p>
+<p>When the update finishes it should carry on into the launch questions (name, org, region). If it instead drops you back at the prompt, run the same command again:</p>
+<pre class="code"><code data-language="sh">fly launch --copy-config --ha=false</code></pre>
+<p>Once the deploy finishes, send me the <code>fly.dev</code> URL it prints, or any error output, and I&#x27;ll check that the page and API are working on the live site.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p5" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p5" title="2026-11-20 Friday 21:08:58 UTC"><time datetime="2026-11-20T21:08:58.163000+00:00">21:08</time></a></header>
+<pre class="prompt">um, maybe it froze? i did the signin thing, pasted the code thingie into the terminal and hit enter.. it printed out some stuff ending with "? Do you want to tweak these settings before proceeding? (y/N)", but the terminal appears to be stuck/frozen.. i make sure that terminal has focus, and press enter, or y or N or click or anything and it's just ?stuck?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 37s · 40s wall-clock time</span></summary>
+<div class="reply machine"><p>Nothing is broken on Fly&#x27;s side: no app has been created yet, so it&#x27;s safe to cancel and run it again.</p>
+<p>What I can see is two copies of the command attached to that terminal: the old <code>fly</code> that started the update, and the updated one it launched afterwards. My guess is that the old one is swallowing your keystrokes, so the prompt never receives them. I haven&#x27;t proven that.</p>
+<ol><li>In that terminal, press Ctrl-C, twice if needed. If it ignores that, run <code>kill 75050 66513</code> in another tab, or just close the stuck tab.</li><li>Run the same command again:</li></ol>
+<pre class="code"><code data-language="sh">   fly launch --copy-config --ha=false</code></pre>
+<p>The update to v0.5.14 is finished and you&#x27;re signed in, so this time it should go straight to the settings summary with a single process. Answer <code>N</code> to &quot;tweak these settings&quot; unless you want a different app name or region than it proposes.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p6" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p6" title="2026-11-20 Friday 21:39:06 UTC"><time datetime="2026-11-20T21:39:06.910000+00:00">21:39</time></a></header>
+<pre class="prompt">ok. nice. now, let's make some changes. i guess i should have asked first: does fly.io have a data store option of some kind? because i wanna add more stuff to this now, and we might wind up wanting one.</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 1m1s · 1m7s wall-clock time</span></summary>
+<div class="reply machine"><p>Yes, Fly has several, and the cheapest one is the volume you already have.</p>
+<p>| Option | What it is | Cost (from Fly&#x27;s pricing page) |<br>|---|---|---|<br>| Volume (what you have now) | A persistent disk; today it holds the JSON file, and it could hold a SQLite database instead | $0.15 per GB per month; daily snapshots kept 5 days by default |<br>| Managed Postgres | A full hosted database that Fly runs for you | From $38 a month, plus $0.28 per GB of storage |<br>| Unmanaged Postgres | Postgres on your own Fly machine, which you maintain | About $2 a month for a single node; Fly lists it as unsupported |<br>| Upstash Redis | A hosted key-value store | Set by Upstash; I didn&#x27;t look it up |<br>| Tigris object storage | File storage, for things like photos | Set by Tigris; I didn&#x27;t look it up |</p>
+<p>I&#x27;d stay on the volume. The JSON file is fine while the data is one small list. If the new features need several kinds of records, or several people editing at once without overwriting each other, I&#x27;d switch to SQLite on that same volume. That gives you a real database with no new service and no extra cost. Managed Postgres is far more than this app needs.</p>
+<p>Two limits of the volume approach:</p>
+<ul><li><strong>One machine only:</strong> the data lives on that machine&#x27;s disk, so the app can&#x27;t be scaled to several machines.</li><li><strong>Backups are the snapshots:</strong> five days of daily snapshots is the only safety net unless we add an export.</li></ul>
+<p>The live site is working: the page loads at https://tgdinner.fly.dev, the API returns your dish list, and the volume is attached.</p>
+<p>What do you want to add? That will tell us whether the JSON file still does the job or it&#x27;s time for SQLite.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p7" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p7" title="2026-11-20 Friday 21:45:36 UTC"><time datetime="2026-11-20T21:45:36.637000+00:00">21:45</time></a></header>
+<pre class="prompt">backups and one machine only are fine. probably even write collisions are fine. this is just going over the top for thanksgiving dinner assignments for my family. can we bring in some of the features of this overly complicated spreadsheet that i used last year? https://docs.google.com/spreadsheets/d/1H467M2TjZZVOayT5D9y-ub53Q6jCMG7P8QVlOU4v-zg/edit?usp=sharing
+
+in particular, i'd like for there to be alternate views, like "here's the full dinner list" or alternately you can view just what you're supposed to bring. or what pies are getting brought, or what dishees don't have anyone claiming them yet. we don't need the vegan/vegitarian sorting this  year, since my sister is gone.</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 6m39s · 7m42s wall-clock time</span> <span class="diffstat">+409 −166 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="add"></span><span class="add"></span><span class="del"></span><span class="nil"></span></span></span></summary>
+<div class="reply machine"><p>Helpers are written and tested against last year&#x27;s sheet (the category guesser matches all 25 rows); now I&#x27;m rewriting the page component with the four views, then I&#x27;ll test it in a headless browser.</p>
+<p>Views are built and the dev server is running against local test data; I&#x27;m now driving it in a headless browser to check each view and the add, assign, confirm and edit actions.</p>
+<p>All browser checks pass now; I&#x27;m confirming the phone layout fix in screenshots and then cleaning up the test server and data.</p>
+<p>The four views are built and working locally, but not deployed yet: run <code>fly deploy</code> when you want the family to see them.</p>
+<ul><li><strong>Everything:</strong> the full list, grouped by the spreadsheet&#x27;s categories (Main, Side / Veg, Dessert, Beverage, Other).</li><li><strong>Mine:</strong> pick your name to see just your dishes. Someone in &quot;Erica &amp; Stephen&quot; sees shared dishes under either name, and the browser remembers who you picked.</li><li><strong>Pies:</strong> any dish with &quot;pie&quot; in its name, with a running count, so the &quot;(5 of 6 total pies)&quot; numbering isn&#x27;t needed.</li><li><strong>Unclaimed:</strong> dishes nobody has taken yet.</li></ul>
+<p>Each view has its own link, such as <code>https://tgdinner.fly.dev/#pies</code> or <code>#mine/Bee</code>, so you can send someone straight to theirs.</p>
+<p>Also brought over from the spreadsheet:</p>
+<ul><li><strong>Category:</strong> your existing dishes have none saved, so it&#x27;s guessed from the name; the same guesser matched all 25 rows of last year&#x27;s sheet. The pencil button changes it, and new dishes can pick one or leave it on auto.</li><li><strong>Notes:</strong> optional, added through the pencil button, shown under the dish name.</li><li><strong>RSVP status:</strong> this was already the assign-then-confirm tick, so I left it alone.</li></ul>
+<p>The vegan column is left out as you asked.</p>
+<p>Two things I added that you didn&#x27;t ask for:</p>
+<ul><li><strong>Saves use the latest list.</strong> Each change is now applied to the current saved list instead of the page&#x27;s own copy. Before, a page left open for a day would wipe everyone else&#x27;s changes on its next save. Pages also refresh when you come back to them.</li><li><strong>Name suggestions.</strong> The &quot;Assign to...&quot; box suggests names already in use, since &quot;Mum&quot; and &quot;Judy&quot; would count as two different people in Mine.</li></ul>
+<p>I tested this in a headless browser against local data only: all four views, adding, claiming, confirming, editing, links, and the phone layout. The production bundle also builds. The live site and its data are untouched.</p>
+<p>To preview first, run <code>API_PORT=3001 npm run start</code> and open http://localhost:5000; I copied the current live list into your local <code>data.json</code> so you&#x27;ll see the real dishes. After deploying, anyone with the old page still open should reload it, since the old page still saves the old way.</p>
+<p>The logic for the views is in the new <code>src/dishes.js</code>, and the page itself is <code>src/ThanksgivingPlanner.jsx</code>. Nothing is committed.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p8" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p8" title="2026-11-20 Friday 22:43:10 UTC"><time datetime="2026-11-20T22:43:10.700000+00:00">22:43</time></a></header>
+<pre class="prompt">can you commit the work?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 30s · 31s wall-clock time</span></summary>
+<div class="reply machine"><p>Committed as two commits on a new branch, <code>fly-hosting-and-views</code>; <code>main</code> is unchanged and nothing is pushed.</p>
+<ul><li><code>06ff979</code> Host on Fly.io with a JSON file store</li><li><code>3d0b497</code> Add views, categories and notes to the dinner planner (this includes your 2026 title change)</li></ul>
+<p>I branched rather than committing straight to <code>main</code>. To put the commits on <code>main</code>, run:</p>
+<pre class="code"><code data-language="sh">git checkout main &amp;&amp; git merge --ff-only fly-hosting-and-views</code></pre>
+<p>Two things are left uncommitted on purpose:</p>
+<ul><li><strong><code>.github/workflows/fly-deploy.yml</code></strong>: <code>fly launch</code> generated this. Once it&#x27;s on GitHub it deploys on every push to <code>main</code>, and it needs a <code>FLY_API_TOKEN</code> secret in the repo; I haven&#x27;t checked whether you&#x27;ve set one. Commit it if you want push-to-deploy.</li><li><strong><code>.config/</code></strong>: Replit leftovers that were already untracked before I started.</li></ul></div>
+</details>
+</article>
+<article class="exchange claude" id="p9" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p9" title="2026-11-20 Friday 22:51:01 UTC"><time datetime="2026-11-20T22:51:01.041000+00:00">22:51</time></a></header>
+<pre class="prompt">ok. got the commits organized. can you do a make-it-pretty pass? we came up with way too many name ideas here https://all-our-ideas.citizens.is/group/1039 which has super cute icons for all the different possibilities. not sure where those icons came from though? can we take the icon for "gobble" as inspiration for style/colors/theme?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 2m23s · 2m59s wall-clock time</span></summary>
+<div class="reply machine"><p>The site wouldn&#x27;t serve its full page to my headless browser, so I&#x27;m switching to your Chrome to look at the &quot;gobble&quot; icon.</p>
+<p>I couldn&#x27;t reach the &quot;gobble&quot; icon directly, so I&#x27;m looking at the poll&#x27;s public preview image and checking the platform&#x27;s source for where the icons come from.</p>
+<p>I haven&#x27;t started the design pass, because I couldn&#x27;t get at the &quot;gobble&quot; icon. The site only gives a stripped-down preview page to anything that isn&#x27;t a regular browser, the permission system blocked my attempt to present a headless browser as a regular one, and the Claude Chrome extension isn&#x27;t connected. All I could see was the poll&#x27;s cover image (the bee with the sweets), not the idea icons.</p>
+<p>The quickest fix is for you to save the gobble icon (right-click, save image) and give me the file path, or paste the image here. Alternatively, connect the Claude extension in Chrome and I&#x27;ll look at the page myself.</p>
+<p>On where the icons came from: the All Our Ideas platform generates them itself. Its open-source code has an <code>AoiIconGenerator</code> that creates an AI image for each idea and resizes it to 400×400. The project&#x27;s README names DALL·E 3 as its image model, though I didn&#x27;t confirm which model made yours. So they were made for your poll, not drawn by a person or pulled from a stock library.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p10" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p10" title="2026-11-20 Friday 22:58:16 UTC"><time datetime="2026-11-20T22:58:16.608000+00:00">22:58</time></a></header>
+<pre class="prompt">ok, saved the image as aoi-turkey-icon take a look. if we can use it, since it was made for our poll, and it's just for personal use (family app), then let's use it, otherwise just use as inspiration.</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 8m8s · 9m4s wall-clock time</span> <span class="diffstat">+67 −9 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="add"></span><span class="add"></span><span class="add"></span><span class="del"></span></span></span></summary>
+<div class="reply machine"><p>Got the icon, and it&#x27;s a great brief: flat fills, thick dark outlines, a peach, tomato and green palette. I&#x27;m now cropping it for the header and favicon and restyling the app around it.</p>
+<p>Theme tokens, fonts and icon files are in place; I&#x27;m now restyling the page markup itself, then I&#x27;ll re-run the browser checks and look at screenshots.</p>
+<p>All functional checks pass with the new styling; I&#x27;m now reviewing the screenshots to judge how it actually looks on desktop and phone.</p>
+<p>Checks still pass after the icon fix; taking one close look at the header, then I&#x27;ll build, clean up and report.</p>
+<p>The pretty pass is done locally, using the turkey itself; it&#x27;s not committed or deployed.</p>
+<p>On whether you can use it: I think yes. It was generated for your own poll, I found no published terms on the site covering generated images either way, and this is a private family app. That&#x27;s a judgment call, not a confirmed licence. If you change your mind it&#x27;s easy to pull out: three image files in <code>public/</code> and one line in the page.</p>
+<p>What changed:</p>
+<ul><li><strong>Icon:</strong> cropped to its round badge and used in the header, as the browser tab icon, and as the phone home-screen icon.</li><li><strong>Colours:</strong> sampled from the icon. The page is its peach, text and outlines are its dark olive-brown, with its green and tomato red as accents.</li><li><strong>Shapes:</strong> thick outlines, rounded corners and a hard &quot;ground line&quot; shadow under cards, echoing the line the turkey stands on.</li><li><strong>Font:</strong> Fredoka, a rounded face loaded from Google Fonts.</li><li><strong>Layout:</strong> each category is one card with a green title strip. Confirmed dishes get a green pill with a tick, and unconfirmed ones a dashed outline with round confirm and decline buttons.</li><li><strong>Title:</strong> &quot;2026 edition&quot; is now a small tag under the title instead of in parentheses.</li></ul>
+<p>I also removed the Tailwind script that <code>index.html</code> loaded from a CDN. The app was styling itself twice, and the theme needs the app&#x27;s own build.</p>
+<p>The same headless-browser checks all pass with the new look, at desktop and phone widths, and the production bundle builds. Screenshots from that run, taken with test data:</p>
+<ul><li><code>/private/tmp/claude-501/-Users-bsoule-factory-tgdinner/2fd2b6d4-11f8-4970-b05a-7d09fa9fe8bc/scratchpad/shots/1-everything.png</code></li><li><code>/private/tmp/claude-501/-Users-bsoule-factory-tgdinner/2fd2b6d4-11f8-4970-b05a-7d09fa9fe8bc/scratchpad/shots/1-everything-phone.png</code></li></ul>
+<p>To see it with your real list, run <code>API_PORT=3001 npm run start</code> and open http://localhost:5000.</p>
+<p>Two leftover files:</p>
+<ul><li><strong><code>aoi-turkey-icon.webp</code></strong> in the repo root isn&#x27;t used by the app, which uses the cropped copies in <code>public/</code>. Keep or delete it as you like.</li><li><strong><code>public/favicon.svg</code></strong>, the old plate-and-fork icon, is still there but no longer linked.</li></ul></div>
+</details>
+</article>
+<article class="exchange claude" id="p11" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p11" title="2026-11-20 Friday 23:08:49 UTC"><time datetime="2026-11-20T23:08:49.239000+00:00">23:08</time></a></header>
+<pre class="prompt">what's my dev/local preview situation?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 10s · 12s wall-clock time</span></summary>
+<div class="reply machine"><p>Nothing is running right now, but everything is set up, so previewing is one command from the repo:</p>
+<pre class="code"><code data-language="sh">API_PORT=3001 npm run start</code></pre>
+<p>Then open http://localhost:5000. Ctrl-C stops it.</p>
+<ul><li><strong>What it starts:</strong> the API server on port 3001 and the Vite dev server on port 5000. Edits to files in <code>src/</code> show up in the browser without restarting.</li><li><strong>Why <code>API_PORT=3001</code>:</strong> your Docker app holds port 3000, which is the default. Without the override, the page&#x27;s API calls can end up at that app instead.</li><li><strong>Data:</strong> it reads and writes <code>data.json</code> in the repo, which is ignored by git. It currently holds a copy of the live list from earlier today (11 dishes). Nothing you do locally touches the live site.</li><li><strong>Dependencies:</strong> already installed.</li><li><strong>Node:</strong> it runs fine on your default Node 14. The Fly image builds with Node 22.</li></ul>
+<p>To try the production build locally instead of the dev server:</p>
+<pre class="code"><code data-language="sh">npm run build &amp;&amp; API_PORT=3001 node server.js</code></pre>
+<p>That serves the built page and the API together at http://localhost:3001, which is what Fly runs.</p>
+<p>The restyle is still uncommitted in your working tree, so the local preview shows the new look while the live site still shows the old one until you run <code>fly deploy</code>.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p12" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p12" title="2026-11-20 Friday 23:15:17 UTC"><time datetime="2026-11-20T23:15:17.076000+00:00">23:15</time></a></header>
+<pre class="prompt">when i pushed the latest commit there was a message "warning: redirecting to github.com/bsoule/assignatory.git" -- should i change something in my config?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 10s</span></summary>
+<div class="reply machine"><p>It&#x27;s harmless, and the push went through, but you can silence it with one command.</p>
+<p>Your remote is set to <code>https://www.github.com/bsoule/assignatory</code>. GitHub redirects the <code>www.</code> address to <code>github.com</code>, and git warns each time it follows that redirect. Pointing the remote at the address the warning names makes it go away:</p>
+<pre class="code"><code data-language="sh">git remote set-url origin https://github.com/bsoule/assignatory.git</code></pre>
+<p>That only changes this repo&#x27;s local config. If you leave it as it is, nothing breaks; you&#x27;ll just keep seeing the warning on every push and fetch.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p13" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p13" title="2026-11-20 Friday 23:26:39 UTC"><time datetime="2026-11-20T23:26:39.821000+00:00">23:26</time></a></header>
+<pre class="prompt">can we add a modal that shows up on first visit that gives some instructions? maybe we put a (?) icon somewhere that can relaunch it as well. it doesn't have to be a fancy interactive walkthrough or anything. i just want some instructions for the older folks in case they find it less than obvious:
+- you can add new dishes 
+- you can click the checkmark to indicate you'll bring what you're assigned
+- you can reject your assignment or change who it is assigned to by clicking the x
+- see the full menu with "everything" pill, or what's unclaimed with "unclaimed" pill. 
+- we expect 13 people this year</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 3m42s · 4m47s wall-clock time</span> <span class="diffstat">+84 −0 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="add"></span><span class="add"></span><span class="add"></span><span class="add"></span></span></span></summary>
+<div class="reply machine"><p>Adding the help dialog now: a first-visit pop-up with your five points plus a &quot;How it works&quot; button in the header to reopen it.</p>
+<p>I need to flag a mistake: my test run hit your own running preview server; checking what state that left things in and restoring your local data now.</p>
+<p>All 52 checks pass on separate test servers; one last look at the dialog on a phone, then I&#x27;ll report.</p>
+<p>The instructions pop-up is built and passes its checks, but I made a mistake along the way that broke your running preview, so restart it before looking.</p>
+<h3>What went wrong</h3>
+<p>I ran my browser test without checking that the ports were free, so it ran against the preview you had started.</p>
+<ul><li><strong>Your API server was stopped.</strong> The test deliberately kills the API to check error handling, and it killed yours. The page on port 5000 is still up, but saving will fail until you press Ctrl-C in that terminal and run <code>API_PORT=3001 npm run start</code> again.</li><li><strong>Your local <code>data.json</code> was briefly replaced with test data.</strong> I restored it from a copy taken just before the test, and it still has your &quot;Stuffing / squash&quot; edit.</li></ul>
+<p>The live site was not touched. My tests now run on their own ports with their own data file.</p>
+<h3>The pop-up</h3>
+<ul><li><strong>First visit:</strong> it opens by itself once per browser. Since the &quot;seen it&quot; flag is new, everyone will see it once after you deploy, including people who have already visited.</li><li><strong>Reopening:</strong> a &quot;How it works&quot; button with a (?) icon sits next to the &quot;2026 edition&quot; tag in the header.</li><li><strong>Closing:</strong> the &quot;Got it&quot; button, the Escape key, or tapping outside it.</li><li><strong>Content:</strong> your five points in larger text, each beside a picture of the button it refers to (red plus, green check, X).</li></ul>
+<p>I reworded your points slightly. The X one reads &quot;Tap the X to clear the name. Then type a name in its box and press Return&quot;, because reassigning is two steps today. The &quot;13 people&quot; line and the rest of the wording are in <code>src/HelpDialog.jsx</code> if you want to edit them.</p>
+<p>All 52 browser checks pass, including the pop-up on a small phone screen, and the production bundle builds. Screenshot: <code>/private/tmp/claude-501/-Users-bsoule-factory-tgdinner/2fd2b6d4-11f8-4970-b05a-7d09fa9fe8bc/scratchpad/shots/0-help.png</code></p>
+<p>Nothing is committed or deployed. Your staged restyle is as you left it, and the pop-up changes are unstaged on top (<code>src/ThanksgivingPlanner.jsx</code> and the new <code>src/HelpDialog.jsx</code>).</p>
+<h3>One thing in your working tree</h3>
+<p><code>package-lock.json</code> has an unstaged change that rewrites it in an older lockfile format, most likely from running <code>npm install</code> under Node 14. I&#x27;d discard it with <code>git checkout package-lock.json</code>, since I haven&#x27;t tested the Fly build against the older format.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p14" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p14" title="2026-11-20 Friday 23:32:40 UTC"><time datetime="2026-11-20T23:32:40.488000+00:00">23:32</time></a></header>
+<pre class="prompt">can we add also a place for me to put the day's schedule?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 2m48s · 3m30s wall-clock time</span> <span class="diffstat">+135 −1 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="add"></span><span class="add"></span><span class="add"></span><span class="del"></span></span></span></summary>
+<div class="reply machine"><p>Building the schedule as a fifth &quot;Schedule&quot; pill with an Edit button; the pieces are written and I&#x27;m wiring them into the page, then testing on separate test servers.</p>
+<p>All 61 checks pass, schedule included; a quick look at how the schedule view renders, then the build check and I&#x27;ll report.</p>
+<p>There&#x27;s now a fifth pill, <strong>Schedule</strong>, next to Unclaimed, with an Edit button where you type the day&#x27;s plan. It&#x27;s working locally; nothing is committed or deployed.</p>
+<ul><li><strong>Entering it:</strong> plain text, one line per item. A line that starts with a time (<code>2:00 Appetizers</code>, <code>4:30pm - Dinner</code>, <code>2:00–4:00 Games</code>, <code>noon Parade on TV</code>) shows the time in its own bold column. Any other line, like &quot;Bring a chair if you can&quot;, is shown as written.</li><li><strong>Linking to it:</strong> <code>#schedule</code> on the end of the site address opens straight on it.</li><li><strong>Who can edit:</strong> anyone who opens the page, same as the dishes, since there are no logins. If you want it to be only you, say so and I&#x27;ll make it something you set in the code instead.</li><li><strong>Stale pages:</strong> Edit always starts from the latest saved text, so a page left open won&#x27;t overwrite a newer schedule.</li></ul>
+<p>I also added one line to the &quot;How it works&quot; pop-up pointing at the Schedule pill, which you didn&#x27;t ask for.</p>
+<p>The schedule needs new server endpoints, so your running preview won&#x27;t have them until you restart it. It needs that restart anyway, because its API half is still down from my earlier mistake: Ctrl-C, then <code>API_PORT=3001 npm run start</code>.</p>
+<p>All 61 browser checks pass, run on separate test servers with their own data this time, and the production bundle builds.</p>
+<p>The changes are in <code>server.js</code>, <code>src/ThanksgivingPlanner.jsx</code>, and three new files: <code>src/Schedule.jsx</code>, <code>src/HelpDialog.jsx</code> and <code>src/Card.jsx</code> (the card component, moved out so the schedule can share it).</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p15" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p15" title="2026-11-20 Friday 23:37:35 UTC"><time datetime="2026-11-20T23:37:35.446000+00:00">23:37</time></a></header>
+<pre class="prompt">the localhost version says it can't load the dish list. did we move it or run into a conflict or something?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 19s · 22s wall-clock time</span></summary>
+<div class="reply machine"><p>Nothing moved and there&#x27;s no conflict; your data is intact. The preview&#x27;s API server isn&#x27;t running, so the page has nothing to load the list from.</p>
+<p>That&#x27;s the half of your <code>npm run start</code> that my test killed earlier. The preview in your terminal is still the same one from before, with only the page server on port 5000 left alive. Nothing is listening on port 3001.</p>
+<p>In the terminal where the preview is running, press Ctrl-C and start it again:</p>
+<pre class="code"><code data-language="sh">API_PORT=3001 npm run start</code></pre>
+<p>Then reload http://localhost:5000. Your local <code>data.json</code> is valid and still has its 11 dishes, including your &quot;Stuffing / squash&quot; edit. The restart also picks up the new schedule endpoints.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p16" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p16" title="2026-11-20 Friday 23:41:03 UTC"><time datetime="2026-11-20T23:41:03.130000+00:00">23:41</time></a></header>
+<pre class="prompt">oh, let's remove the schedule api. it can just be text that i write somewhere in the source and not a problem to have to do deploy if there are changes to make. good idea to point to it in the help text. can we also make the schedule pill stand out as something slightly different? maybe it has slightly different background color something?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 1m58s · 2m51s wall-clock time</span> <span class="diffstat">+33 −80 <span class="blocks" aria-hidden="true"><span class="add"></span><span class="del"></span><span class="del"></span><span class="del"></span><span class="nil"></span></span></span></summary>
+<div class="reply machine"><p>All 60 checks pass on a scratch copy, with your restarted preview left alone; I&#x27;m taking one look at the new pill, then I&#x27;ll report.</p>
+<p>The schedule is now a text file in the source, the schedule API is gone, and the Schedule pill is green with a clock icon. Nothing is committed or deployed.</p>
+<ul><li><strong>Where to write it:</strong> <code>src/schedule.txt</code>. One line per item; a line starting with a time (<code>4:30</code>, <code>4pm</code>, <code>2:00-4:00</code>, <code>noon</code>) gets the time in its own bold column, and lines starting with <code>#</code> are ignored. The file has those instructions at the top.</li><li><strong>Right now it&#x27;s empty</strong>, so the Schedule view says &quot;The schedule isn&#x27;t posted yet.&quot; I didn&#x27;t invent one.</li><li><strong>Publishing a change:</strong> save the file and run <code>fly deploy</code>. Your local preview picks up edits as soon as you save.</li><li><strong>The pill:</strong> green with a clock when idle; when selected it goes dark like the other selected pills.</li><li><strong>The API:</strong> removed from both the page and the server. <code>server.js</code> is back to exactly what&#x27;s committed, and the Edit button is gone.</li></ul>
+<p>I did not touch <code>src/HelpDialog.jsx</code>, because you have it open in vim. The help text still points to Schedule, but its little picture of the pill is the plain cream style, not green with a clock. I can make it match once you&#x27;ve closed the file.</p>
+<p>All 60 browser checks pass, run against a scratch copy of the project on separate ports, and the production bundle builds. Your running preview was left alone and needs no restart for these changes.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p17" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p17" title="2026-11-20 Friday 23:56:20 UTC"><time datetime="2026-11-20T23:56:20.839000+00:00">23:56</time></a></header>
+<pre class="prompt">how do i add a custom domain on fly.io?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 18s · 19s wall-clock time</span></summary>
+<div class="reply machine"><p>Three steps, none of which need a code change or a redeploy. Substitute your real domain for <code>dinner.example.com</code>.</p>
+<ol><li><strong>Tell Fly about the domain</strong>, from the repo:</li></ol>
+<pre class="code"><code data-language="sh">   fly certs add dinner.example.com</code></pre>
+<p>   It prints the DNS records it wants you to create.</p>
+<ol><li><strong>Add the DNS record where your domain is managed.</strong></li></ol>
+<ul><li>For a subdomain like <code>dinner.example.com</code>: a CNAME from <code>dinner</code> to <code>tgdinner.fly.dev</code>.</li><li>For a bare domain like <code>example.com</code>: an A record to <code>66.241.125.80</code> and an AAAA record to <code>2a09:8280:1::216:a1ff:0</code>, which are your app&#x27;s current addresses.</li></ul>
+<ol><li><strong>Check that the certificate was issued:</strong></li></ol>
+<pre class="code"><code data-language="sh">   fly certs check dinner.example.com</code></pre>
+<p>   Once it reports the certificate as issued, <code>https://dinner.example.com</code> works. Fly gets the certificate from Let&#x27;s Encrypt and renews it automatically.</p>
+<ul><li><strong>The IPv4 address is a shared one</strong>, which is fine for a website; you don&#x27;t need to buy a dedicated address.</li><li><strong>If your DNS is on Cloudflare</strong>, set the record to &quot;DNS only&quot; rather than proxied, or the certificate check can fail.</li><li><strong><code>tgdinner.fly.dev</code> keeps working</strong> alongside the custom domain.</li><li><strong>Cost:</strong> Fly&#x27;s pricing page lists the first 10 single-hostname certificates as free.</li></ul>
+<p>I haven&#x27;t run any of this; your app has no certificates yet. If you lose the DNS instructions, <code>fly certs setup dinner.example.com</code> shows them again.</p></div>
+</details>
+</article>
+<h2 class="day" id="d2026-11-21"><time datetime="2026-11-21">2026-11-21 Saturday</time> <span class="zone">UTC</span></h2>
+<article class="exchange claude" id="p18" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p18" title="2026-11-21 Saturday 00:03:07 UTC"><time datetime="2026-11-21T00:03:07.445000+00:00">00:03</time></a></header>
+<pre class="prompt">i just realized it's a little weird that i put my dad in as "bob" and my mom as "mum", also since there are lots of moms it is probably a wee bit confusing to have the naming be afrom my pov. i changed the assignment from "mum" to "jud" on the deployed app, but "mum" is still showing in the list of people. can we flush "mum" from the list?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 38s · 44s wall-clock time</span></summary>
+<div class="reply machine"><p>&quot;Mum&quot; is gone from the live site now. It wasn&#x27;t a stale entry: Rolls was still assigned to &quot;Mum&quot;, and only Cranberry bread had been changed to &quot;Jud&quot;.</p>
+<p>The list of people is built from whoever currently has a dish, so there&#x27;s nothing to flush separately. I changed Rolls from &quot;Mum&quot; to &quot;Jud&quot; on the live site, keeping it unconfirmed as it was. Jud now has Rolls and Cranberry bread, all 12 dishes are otherwise unchanged, and no dish mentions &quot;Mum&quot;.</p>
+<p>Reload the page to see it. If &quot;Mum&quot; still shows in the &quot;Who are you?&quot; picker in your own browser, that browser remembered it as your pick; choosing another name there clears it.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p19" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p19" title="2026-11-21 Saturday 00:42:25 UTC"><time datetime="2026-11-21T00:42:25.913000+00:00">00:42</time></a></header>
+<pre class="prompt">trying to run a python script on this dir i got "modulenotfounderror: no module named compression" -- do i need like a package install or something for that?</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 17s · 18s wall-clock time</span></summary>
+<div class="reply machine"><p>No package install will fix that: <code>compression</code> is part of Python&#x27;s standard library, but only from Python 3.14 on. The script is being run by an older Python.</p>
+<p>In this directory <code>python3</code> resolves to 3.12.4 (through asdf), which doesn&#x27;t have the module. You do have Python 3.14.8 installed at <code>/usr/local/bin/python3.14</code>, and I confirmed <code>compression</code> imports fine there.</p>
+<p>So run the script with that one:</p>
+<pre class="code"><code data-language="sh">python3.14 your-script.py</code></pre>
+<p>If the script is launched some other way (a <code>#!/usr/bin/env python3</code> line, or a tool that calls <code>python3</code> itself), it will keep picking up 3.12.4. In that case either call it explicitly with <code>python3.14</code> as above, or install 3.14 through asdf and select it for this directory.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p20" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p20" title="2026-11-21 Saturday 00:45:03 UTC"><time datetime="2026-11-21T00:45:03.425000+00:00">00:45</time></a></header>
+<pre class="prompt">ugh. there are way too many options. asdf list all python gives me like 500 options. is there just a "whatever is the latest"? "miniconda" i don't want to have to know about that.</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 30s · 31s wall-clock time</span></summary>
+<div class="reply machine"><p>You don&#x27;t need to install anything: you already have Python 3.14.8 from Homebrew, and one command makes <code>python3</code> use it in this directory.</p>
+<pre class="code"><code data-language="sh">asdf set python system</code></pre>
+<p>That tells asdf to step aside and use the Python already on your machine. Right now the <code>.tool-versions</code> file in this repo pins Python 3.12.4, which is why you got the old one. I checked that with the <code>system</code> setting, <code>python3</code> here is 3.14.8 and <code>compression</code> imports.</p>
+<p>To make that the default everywhere, not just in this directory, add <code>-u</code>:</p>
+<pre class="code"><code data-language="sh">asdf set -u python system</code></pre>
+<p>On &quot;whatever is the latest&quot;: asdf does have <code>asdf install python latest</code>, but I&#x27;d avoid it. It currently resolves to <code>3.15.2t</code>, where the <code>t</code> means an experimental variant of Python that some packages don&#x27;t work with. If you ever do want a newer one through asdf, name the plain version, for example <code>asdf install python 3.15.2</code>. You can ignore everything else in that list, miniconda included.</p></div>
+</details>
+</article>
+<article class="exchange claude" id="p21" data-login="bsoule">
+<header><p class="speaker">bsoule</p>
+<a class="anchor" href="#p21" title="2026-11-21 Saturday 00:46:50 UTC"><time datetime="2026-11-21T00:46:50.589000+00:00">00:46</time></a></header>
+<pre class="prompt">ok, nevermind. i just ran with specifying the version. and then this error happened: 
+
+&lt;pasted_content id="2ab5"&gt;
+factory/tgdinner % python3.14 ../beeminder/sourcery/sourcery.py . sourcery.html               16:45:39
+Error! But don't worry your pretty head about what the error is, just paste the following to Claude:
+Recordum Claude generis ignoti, fortasse verba hominis tenens: /Users/bsoule/.claude/projects/-Users-bsoule-factory-tgdinner/2fd2b6d4-11f8-4970-b05a-7d09fa9fe8bc.jsonl:510
+Forma transcripti Claude mutata videtur; claude_exchanges renovandum est.
+&lt;/pasted_content id="2ab5"&gt;
+</pre>
+<details>
+<summary><span class="chip"></span> <span class="agent">Claude Code</span> <span class="model">claude-fable-5-2</span> <span class="effort">(xhigh)</span> <span class="elapsed">thought for 2m59s · 3m14s wall-clock time</span></summary>
+<div class="reply machine"><p>I&#x27;m fixing this in sourcery the way that repo asks: first a failing check that reproduces your transcript&#x27;s new record, then the one-line allowlist change, then a dry run on tgdinner.</p>
+<p>Sourcery now reads this transcript: the fix is made in <code>../beeminder/sourcery</code>, uncommitted, and your command should work if you run it again.</p>
+<p><strong>Cause.</strong> Line 510 of this session&#x27;s transcript is a kind of record sourcery had never been told about, and it refuses anything unknown in case it holds words you typed. The record is an attachment of type <code>hook_system_message</code>, written by Claude Code 2.1.328. It holds Claude Code&#x27;s own tip shown after a Bash call (&quot;Tip: Run /ultrareview before you push…&quot;), so nothing you typed. It is the only record of that type in the 101 transcript files on this machine.</p>
+<p><strong>Changes</strong>, following that repo&#x27;s <code>AGENTS.md</code>:</p>
+<ul><li><strong><code>quals.py</code>:</strong> a new qual that reproduces the record between a prompt and a reply, plus the type added to the qual that pins the list of known attachment types.</li><li><strong><code>sourcery.py</code>:</strong> <code>hook_system_message</code> added to <code>CLAUDE_MUTE_ATTACHMENTS</code>, with a comment saying what it holds.</li><li><strong><code>VERSION</code>:</strong> bumped from <code>2026.11.16-a</code> to <code>2026.11.20-a</code>, because earlier reader fixes bumped it the same way.</li></ul>
+<p><strong>Verification.</strong></p>
+<ul><li>Both quals failed with your exact error before the change and pass after it.</li><li>The full suite passes (462 quals).</li><li>A dry run on tgdinner with the output in a scratch folder exited cleanly and read 21 prompts, which matches this conversation. It wrote nothing into tgdinner.</li></ul>
+<p>Two things for you to decide when you review the diff:</p>
+<ul><li><strong>This widens sourcery&#x27;s pinned allowlist</strong>, which that repo&#x27;s rules treat as a spec change to discuss with the humans. I made it because the tool&#x27;s error asks for exactly this update, but it&#x27;s worth showing dreeves.</li><li><strong>The version bump</strong> is me following the pattern. Revert that line if releases are numbered by hand.</li></ul>
+<p>I ran no git commands that change anything in the sourcery repo, per its rules.</p></div>
+</details>
+</article>
+</main>
+<script>
+/* The clock. sourcery writes every time and date on this page in UTC, so
+   the file reads the same whoever runs it; this block re-renders each in
+   the viewer's own zone: every prompt's time and the full date and time
+   in its link's title, the day headers (regrouping
+   the prompts under the viewer's own calendar days, each header naming
+   the zone as the browser names it), the rail's day marks, the deck's
+   date range and the minimap's titles. With scripts off the page reads in
+   UTC, as written. It runs before the rail code below, which collects the
+   day marks rebuilt here. */
+{
+  const clock = new Intl.DateTimeFormat("en-US", {
+    weekday: "long", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZoneName: "short",
+  });
+  /* An instant as sourcery writes it (ISO 8601 in UTC, to the
+     microsecond), as the parts of the viewer's clock and calendar. */
+  const local = (text) => {
+    const utc = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.\d+)?\+00:00$/.exec(text);
+    // TODO: Says the text is not a UTC instant in the form sourcery writes.
+    if (!utc) throw new Error(`Instans UTC formae sourcery non est: ${text}`);
+    const [, year, month, day, hour, minute, second] = utc.map(Number);
+    const instant = Date.UTC(year, month - 1, day, hour, minute, second);
+    return Object.fromEntries(clock.formatToParts(instant).map((part) => [part.type, part.value]));
+  };
+  const days = []; // [date, header text], one per day header, in page order
+  for (const header of document.querySelectorAll("main > h2.day")) header.remove();
+  for (const article of document.querySelectorAll("main > article.exchange")) {
+    const time = article.querySelector("header time");
+    const at = local(time.dateTime);
+    const date = `${at.year}-${at.month}-${at.day}`;
+    time.textContent = `${at.hour}:${at.minute}`;
+    time.parentElement.title = `${date} ${at.weekday} ${at.hour}:${at.minute}:${at.second} ${at.timeZoneName}`;
+    const title = document.querySelector(`.minimap a[href="#${article.id}"] title`);
+    title.textContent = [time.textContent, ...title.textContent.split(" ").slice(1)].join(" ");
+    if (date !== days.at(-1)?.[0]) {
+      days.push([date, `${date} ${at.weekday}`]);
+      article.insertAdjacentHTML(
+        "beforebegin",
+        `<h2 class="day" id="d${date}"><time datetime="${date}">${date} ${at.weekday}</time>`
+          + ` <span class="zone">${at.timeZoneName}</span></h2>`,
+      );
+    }
+  }
+  document.querySelector("#progress .daymarks").innerHTML = days.map(([date, text]) =>
+    `\n<a class="daymark" href="#d${date}"><span class="tick"></span><span class="text">${text}</span></a>`,
+  ).join("") + "\n";
+  /* The first and last day, or the one day when they are the same (the
+     Set drops the repeat), as render() writes the deck's range. */
+  document.querySelector(".deck .range").innerHTML = [...new Set([days[0][0], days.at(-1)[0]])]
+    .map((date) => `<time datetime="${date}">${date}</time>`).join(" – ");
+}
+for (const control of document.querySelectorAll("[data-omnia]"))
+  control.addEventListener("click", (event) => {
+    event.preventDefault();
+    const open = control.dataset.omnia === "open";
+    for (const details of document.querySelectorAll("details")) details.open = open;
+  });
+/* The reading-progress rail: the bar's height and each day mark's top
+   share one scale — percent of full scroll travel — so the bar's tip
+   touches a day's tick at the exact moment that day's header reaches the
+   top of the viewport. A header past the last reachable scroll position
+   can never get there; its mark pins to 100%, where the bar arrives at
+   the very bottom of the page. */
+const progress = document.getElementById("progress");
+const bar = progress.querySelector(".progress-bar");
+const marks = [...progress.querySelectorAll(".daymark")].map(
+  (mark) => [mark, document.getElementById(mark.hash.slice(1))],
+);
+let ticking = false;
+const sync = () => {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    const travel = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
+    progress.classList.toggle("show", scrollY > 300);
+    bar.style.height = 100 * scrollY / travel + "%";
+    for (const [mark, header] of marks)
+      mark.style.top =
+        Math.min(100 * (header.getBoundingClientRect().top + scrollY) / travel, 100) + "%";
+    ticking = false;
+  });
+};
+addEventListener("scroll", sync, { passive: true });
+addEventListener("resize", sync);
+/* Opening or closing a disclosure reflows the whole page under the rail. */
+document.addEventListener("toggle", sync, true);
+sync();
+</script>
+</body>
+</html>
