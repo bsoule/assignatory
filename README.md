@@ -2,20 +2,39 @@
 
 I'm going on a picnic, and I'm bringing assignatory, an app for assigning what everyone should bring to the picnic.
 
-## Running React on Replit
+This file is only for humans. Robots see IGNOREME.md
 
-[React](https://reactjs.org/) is a popular JavaScript library for building user interfaces.
+# Next tasks
 
-[Vite](https://vitejs.dev/) is a blazing fast frontend build tool that includes features like Hot Module Reloading (HMR), optimized builds, and TypeScript support out of the box.
+* [CHK] i think the checkmarks shouldn't have a green background when the person's name isn't confirmed. turning green like that should be the visual indicator that it's been confirmed, i think.
+* [WHO] bigger UX thing: someone's gonna end up checking the confirm button on behalf of someone else and confusion's gonna ensue. the page could make you say who you are first or something? i guess this needs more thought, or maybe i'm wrong and it will be fine with this many users.
+* [LPS] can we do all the standard link preview stuff?
 
-Using the two in conjunction is one of the fastest ways to build a web app.
 
-### Getting Started
-- Hit run
-- Edit [App.jsx](#src/App.jsx) and watch it live update!
+Brainstorming dishes, list from Thanksgiving 2025:
 
-By default, Replit runs the `dev` script, but you can configure it by changing the `run` field in the [configuration file](#.replit). Here are the vite docs for [serving production websites](https://vitejs.dev/guide/build.html)
-
-### Typescript
-
-Just rename any file from `.jsx` to `.tsx`. You can also try our [TypeScript Template](https://replit.com/@replit/React-TypeScript)
+Turkey
+Stuffing
+Gravy
+Butternut squash
+Yams
+Rolls
+Green bean casserole
+Potatoes
+Pie of Pear       (1 of 6 total pies)
+Pie of Mystery    (2 of 6 total pies)
+Pie of Pecan      (3 of 5 total pies)
+Pie of Pumpkin #1 (4 of 6 total pies)
+Pie of Pumpkin #2 (5 of 6 total pies)
+Pie of Pumpkin #3 (6 of 6 total pies)
+Apple turkey apples
+Apple turkey candy
+Olives & pickles
+Cranberry sauce
+Cranberry bread
+Gingerbread
+Salad or other vegetable side
+Punch
+Manhattans
+Wine
+Beer

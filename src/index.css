@@ -1,10 +1,31 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "../src";
+
+@theme {
+  /* Sampled from the turkey icon (public/gobble.png); `sand` is its background. */
+  --color-sand: #FCC99F;
+  --color-cream: #FFF5E9;
+  --color-ink: #3C2E00;
+  --color-tomato: #FF413D;
+  --color-leaf: #5DCD72;
+
+  --font-sans: Fredoka, ui-rounded, system-ui, sans-serif;
+
+  /* A hard-edged "ground line" under things, like the one the turkey stands on. */
+  --shadow-ground: 0 3px 0 0 #3C2E00;
+  --shadow-ground-sm: 0 2px 0 0 #3C2E00;
+}
 
 @layer base {
   body {
     @apply bg-sand font-sans text-ink antialiased;
+  }
+
+  /* Tailwind 4 stopped giving buttons a pointer cursor; this keeps Tailwind 3's. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -23,14 +44,14 @@
   }
 
   .ghost-button {
-    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/70 hover:bg-sand hover:text-ink;
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/70 hover:bg-sand hover:text-ink active:bg-sand active:text-ink;
   }
 
   .field:focus-visible,
   .round-button:focus-visible,
   .ghost-button:focus-visible,
   .tab:focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-ink;
+    @apply outline-2 outline-offset-2 outline-ink;
   }
 
   .tab {

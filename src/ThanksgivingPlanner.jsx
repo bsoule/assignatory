@@ -13,6 +13,7 @@ import {
   isBringing,
   allPeople,
   groupByCategory,
+  listProblems,
 } from './dishes';
 
 const API_URL = '/api';  // This will be the base URL for our API
@@ -38,18 +39,26 @@ const VIEWS = [
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
+// The URL hash for a route: #pies, #mine/Bee. Only the Mine view names a person.
+const routeHash = ({ view, who }) => (view === 'mine' && who ? `mine/${encodeURIComponent(who)}` : view);
+
+// Alert copy for a link whose part after the # isn't a view this page has.
+const BAD_ROUTE = `Oops, the URL got mangled so we're just showing everything...`;
+
 // The view lives in the URL (#pies, #mine/Bee) so a link can point straight at one.
+// A hash the app wouldn't have written (routeHash) isn't guessed at: it shows the
+// whole list under an alert (route.problem).
 const readRoute = () => {
+  const hash = window.location.hash.slice(1) || 'all';
   try {
-    const [view, who = ''] = window.location.hash.slice(1).split('/').map(decodeURIComponent);
-    return { view: VIEWS.some((v) => v.id === view) ? view : 'all', who };
-  } catch {
-    return { view: 'all', who: '' };
-  }
+    const [view, who = ''] = hash.split('/').map(decodeURIComponent);
+    if (VIEWS.some((v) => v.id === view) && routeHash({ view, who }) === hash) return { view, who, problem: '' };
+  } catch { /* a garbled %-escape: not a hash the app writes */ }
+  return { view: 'all', who: '', problem: BAD_ROUTE };
 };
 
 const goTo = (view, who) => {
-  window.location.hash = who ? `${view}/${encodeURIComponent(who)}` : view;
+  window.location.hash = routeHash({ view, who });
 };
 
 // Small things this browser remembers between visits.
@@ -62,24 +71,26 @@ const remember = (key, value) => {
   try { localStorage.setItem(key, value); } catch { /* private window: fine */ }
 };
 
-const fetchDishes = async () => {
-  const response = await fetch(`${API_URL}/dishes`);
+// The dish list in a response, or a throw if the response failed or holds a
+// list the app couldn't have saved (listProblems in dishes.js).
+const listFrom = async (response) => {
   const dishes = await response.json();
-  if (!response.ok || !Array.isArray(dishes)) throw new Error(`Bad response (${response.status})`);
+  const problems = listProblems(dishes);
+  if (!response.ok || problems.length > 0) throw new Error(`Bad response (${response.status}): ${problems.join(' ')}`);
   return dishes;
 };
 
-const postDishes = async (dishes) => {
-  const response = await fetch(`${API_URL}/dishes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(dishes),
-  });
-  const saved = await response.json();
-  if (!response.ok || !Array.isArray(saved)) throw new Error(`Bad response (${response.status})`);
-  return saved;
-};
+const fetchDishes = async () => listFrom(await fetch(`${API_URL}/dishes`));
 
+const postDishes = async (dishes) => listFrom(await fetch(`${API_URL}/dishes`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(dishes),
+}));
+
+// Hooks for the quals (quals/app.mjs), which find elements by these and never
+// by words or looks: data-dish={id} on each dish's row, data-view={id} on each
+// view's button, and data-qual="..." on each control a qual uses.
 const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, confirm, release }) => {
   if (editing && editing.id === dish.id) {
     const set = (fields) => setEditing({ ...editing, ...fields });
@@ -88,10 +99,11 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
       if (e.key === 'Escape') setEditing(null);
     };
     return (
-      <li className="flex flex-wrap items-center gap-2 bg-white px-4 py-3">
+      <li data-dish={dish.id} className="flex flex-wrap items-center gap-2 bg-white px-4 py-3">
         <input
           type="text"
           aria-label="Dish name"
+          data-qual="edit-name"
           value={editing.name}
           onChange={(e) => set({ name: e.target.value })}
           onKeyDown={onKeyDown}
@@ -100,6 +112,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
         />
         <select
           aria-label="Category"
+          data-qual="edit-category"
           value={editing.category}
           onChange={(e) => set({ category: e.target.value })}
           className="field py-1.5"
@@ -109,16 +122,17 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
         <input
           type="text"
           aria-label="Notes"
+          data-qual="edit-notes"
           placeholder="Notes (optional)"
           value={editing.notes}
           onChange={(e) => set({ notes: e.target.value })}
           onKeyDown={onKeyDown}
           className="field min-w-[8rem] flex-1 py-1.5"
         />
-        <button onClick={saveEdit} className="round-button bg-leaf" title="Save">
+        <button onClick={saveEdit} data-qual="save" className="round-button bg-leaf" title="Save">
           <Check size={18} strokeWidth={3} />
         </button>
-        <button onClick={() => setEditing(null)} className="ghost-button" title="Cancel">
+        <button onClick={() => setEditing(null)} data-qual="cancel" className="ghost-button" title="Cancel">
           <X size={18} strokeWidth={2.5} />
         </button>
       </li>
@@ -126,7 +140,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+    <li data-dish={dish.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
       <div className="min-w-[7rem] flex-1">
         <div className="text-lg font-medium leading-snug">{dish.name}</div>
         {dish.notes && <div className="text-sm text-ink/70">{dish.notes}</div>}
@@ -141,6 +155,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
           <input
             type="text"
             aria-label={`Who is bringing ${dish.name}?`}
+            data-qual="assign"
             placeholder="Assign to..."
             list="people"
             className="field w-36 py-1.5 text-sm"
@@ -158,7 +173,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
               {dish.assignedTo}
               <Check size={16} strokeWidth={3} role="img" aria-label="confirmed" />
             </span>
-            <button onClick={() => release(dish.id)} className="ghost-button" title="Remove assignment">
+            <button onClick={() => release(dish.id)} data-qual="release" className="ghost-button" title="Remove assignment">
               <X size={18} strokeWidth={2.5} />
             </button>
           </>
@@ -168,10 +183,10 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             <span className="rounded-full border-2 border-dashed border-ink/60 px-3 py-0.5 font-medium">
               {dish.assignedTo}
             </span>
-            <button onClick={() => confirm(dish.id)} className="round-button bg-leaf" title="Confirm">
+            <button onClick={() => confirm(dish.id)} data-qual="confirm" className="round-button bg-leaf" title="Confirm">
               <Check size={18} strokeWidth={3} />
             </button>
-            <button onClick={() => release(dish.id)} className="round-button bg-cream hover:bg-tomato" title="Decline">
+            <button onClick={() => release(dish.id)} data-qual="decline" className="round-button bg-cream hover:bg-tomato active:bg-tomato" title="Decline">
               <X size={18} strokeWidth={3} />
             </button>
           </>
@@ -184,6 +199,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             category: categoryOf(dish),
             notes: dish.notes || '',
           })}
+          data-qual="edit"
           className="ghost-button"
           title="Edit"
         >
@@ -214,10 +230,10 @@ const ThanksgivingPlanner = () => {
 
   // Load the list, and reload it whenever this tab comes back into view
   useEffect(() => {
-    const loadDishes = async () => {
+    // Shows the list that `latest` gets, or the alert if it can't get one.
+    const loadDishes = async (latest) => {
       try {
-        const storedDishes = await fetchDishes();
-        setDishes(storedDishes.length === 0 ? await postDishes(DEFAULT_DISHES) : storedDishes);
+        setDishes(await latest());
         setError('');
       } catch (err) {
         console.error('Error loading dishes:', err);
@@ -225,11 +241,16 @@ const ThanksgivingPlanner = () => {
       }
       setLoading(false);
     };
+    // The first load seeds an empty list with the default dishes; a refresh never does.
+    const seeded = async () => {
+      const storedDishes = await fetchDishes();
+      return storedDishes.length === 0 ? postDishes(DEFAULT_DISHES) : storedDishes;
+    };
     const refresh = () => {
-      if (document.visibilityState === 'visible') fetchDishes().then(setDishes).catch(() => {});
+      if (document.visibilityState === 'visible') loadDishes(fetchDishes);
     };
 
-    loadDishes();
+    loadDishes(seeded);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
     return () => {
@@ -328,7 +349,7 @@ const ThanksgivingPlanner = () => {
 
   return (
     <>
-      <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 p-4 sm:p-6">
         <header className="flex items-center gap-4">
           {/* Cropped to the badge and clipped round, so none of the image's own background shows */}
           <img src="/gobble.png" alt="" width="96" height="96" className="h-20 w-20 shrink-0 rounded-full sm:h-24 sm:w-24" />
@@ -339,7 +360,8 @@ const ThanksgivingPlanner = () => {
               <button
                 ref={helpButton}
                 onClick={() => setHelpOpen(true)}
-                className="tab gap-1 bg-cream px-2.5 py-0 text-sm hover:bg-white"
+                data-qual="help"
+                className="tab gap-1 bg-cream px-2.5 py-0 text-sm hover:bg-white active:bg-white"
               >
                 <HelpCircle size={16} strokeWidth={2.5} />
                 How it works
@@ -348,23 +370,24 @@ const ThanksgivingPlanner = () => {
           </div>
         </header>
 
-        {error && (
-          <div role="alert" className="card flex items-center gap-3 px-4 py-3 font-medium">
+        {[route.problem, error].filter(Boolean).map((message) => (
+          <div key={message} role="alert" className="card flex items-center gap-3 px-4 py-3 font-medium">
             <span
               aria-hidden="true"
               className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-tomato font-bold"
             >
               !
             </span>
-            <span>{error}</span>
+            <span>{message}</span>
           </div>
-        )}
+        ))}
 
         {/* Add new dish */}
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             aria-label="New dish"
+            data-qual="new-dish"
             value={newDish}
             onChange={(e) => setNewDish(e.target.value)}
             placeholder="Add a new dish..."
@@ -373,6 +396,7 @@ const ThanksgivingPlanner = () => {
           />
           <select
             aria-label="Category for the new dish"
+            data-qual="new-category"
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             className="field"
@@ -382,6 +406,7 @@ const ThanksgivingPlanner = () => {
           </select>
           <button
             onClick={addDish}
+            data-qual="add"
             className="round-button h-11 w-11 bg-tomato shadow-ground-sm active:shadow-none"
             title="Add dish"
           >
@@ -393,18 +418,19 @@ const ThanksgivingPlanner = () => {
         <nav aria-label="Views" className="flex flex-wrap gap-2">
           {VIEWS.map(({ id, label, aside }) => {
             const active = route.view === id;
-            const idle = aside ? 'bg-leaf hover:bg-leaf/80' : 'bg-cream hover:bg-white';
+            const idle = aside ? 'bg-leaf hover:bg-leaf/80 active:bg-leaf/80' : 'bg-cream hover:bg-white active:bg-white';
             return (
               <button
                 key={id}
-                onClick={() => goTo(id, id === 'mine' ? person : '')}
+                data-view={id}
+                onClick={() => goTo(id, person)}
                 aria-pressed={active}
                 className={`tab ${active ? 'bg-ink text-cream' : idle}`}
               >
                 {aside && <Clock size={16} strokeWidth={2.5} />}
                 {label}
                 {counts[id] !== null && (
-                  <span className={`rounded-full px-2 text-sm ${active ? 'bg-cream text-ink' : 'bg-sand'}`}>
+                  <span data-qual="count" className={`rounded-full px-2 text-sm ${active ? 'bg-cream text-ink' : 'bg-sand'}`}>
                     {counts[id]}
                   </span>
                 )}
@@ -426,6 +452,7 @@ const ThanksgivingPlanner = () => {
               <select
                 value={person}
                 onChange={(e) => pickPerson(e.target.value)}
+                data-qual="me"
                 className="field text-base font-normal"
               >
                 <option value="">Pick a name...</option>

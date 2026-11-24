@@ -1,3 +1,8 @@
+AGENTS.md
+# One person's own agent setup: the git guard's wiring and the qual that checks it
+.claude/settings.local.json
+quals/git-guard-setup.qual.mjs
+
 # Logs
 logs
 *.log
