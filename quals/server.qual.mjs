@@ -1,0 +1,139 @@
+// server.js, the Express server production runs, from the outside: its API,
+// its data file, and how it fails. Error messages aren't pinned, only status
+// codes and what ends up on disk.
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { FIXTURE, ROOT, buildApp, rer, startServer } from './app.mjs';
+
+await buildApp();
+
+const getDishes = async (server) => {
+  const response = await fetch(`${server.url}/api/dishes`);
+  return { status: response.status, body: await response.json() };
+};
+const postRaw = (server, body) => fetch(`${server.url}/api/dishes`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+});
+
+// A fresh install: no data file. The list is empty and reading it creates no file.
+{
+  const server = await startServer(undefined);
+  try {
+    const { status, body } = await getDishes(server);
+    assert.deepEqual([status, body], [200, []], rer('start server.js with no data file; GET /api/dishes',
+      '200 and an empty list', `${status} ${JSON.stringify(body)}`));
+    assert.ok(!fs.existsSync(server.dataFile), rer('the same GET', 'no data file created by a read', 'the file exists'));
+  } finally {
+    await server.stop();
+  }
+}
+
+// Saving: POST replaces the whole list, echoes it back, and lands on disk whole.
+{
+  const server = await startServer(FIXTURE);
+  try {
+    const list = [...FIXTURE.slice(1), { id: 8, name: 'Gravy', assignedTo: 'Sam', status: 'pending' }];
+    const response = await server.post(list);
+    const echoed = await response.json();
+    assert.deepEqual([response.status, echoed], [200, list], rer('POST a list to /api/dishes',
+      '200, with the list echoed back', `${response.status} ${JSON.stringify(echoed)}`));
+    const { status, body } = await getDishes(server);
+    assert.deepEqual([status, body], [200, list], rer('POST a list, then GET /api/dishes',
+      '200 and exactly the posted list', `${status} ${JSON.stringify(body)}`));
+    assert.deepEqual(server.stored(), list, rer('POST a list, then read the data file',
+      'the file holds exactly the posted list', JSON.stringify(server.stored())));
+    const leftovers = fs.readdirSync(path.dirname(server.dataFile)).filter((f) => f !== path.basename(server.dataFile));
+    assert.deepEqual(leftovers, [], rer('POST a list, then list the data file\'s folder',
+      'only the data file: the temp file a save writes first is renamed over it', `also ${leftovers.join(', ')}`));
+
+    // Malformed JSON, and lists the app would never save (src/dishes.js's
+    // listProblems), are refused with a 400 naming the problems, and the
+    // stored list is untouched.
+    const invalid = [
+      ['malformed JSON', '[{"id": 1, "name": '],
+      ['an object, not a list', '{"dishes": []}'],
+      ['a number', '5'],
+      ['a dish with a status the app doesn\'t have', JSON.stringify([{ id: 1, name: 'Turkey', assignedTo: '', status: 'maybe' }])],
+      ['two dishes with one id', JSON.stringify([FIXTURE[0], { ...FIXTURE[1], id: FIXTURE[0].id }])],
+      ['an assignee ending in a space', JSON.stringify([{ ...FIXTURE[0], assignedTo: 'Alex ' }])],
+    ];
+    for (const [label, body] of invalid) {
+      const bad = await postRaw(server, body);
+      const answer = await bad.json().catch(() => null);
+      assert.ok(bad.status === 400, rer(`POST ${label} to /api/dishes`, '400', `${bad.status} ${JSON.stringify(answer)}`));
+      assert.deepEqual(server.stored(), list, rer(`POST ${label}, then read the data file`,
+        'the list from before, untouched', JSON.stringify(server.stored())));
+    }
+    const named = await postRaw(server, invalid[3][1]).then((r) => r.json());
+    assert.ok(Array.isArray(named.error) && named.error.length > 0, rer(`POST ${invalid[3][0]}`,
+      'a JSON answer whose "error" lists the problems', JSON.stringify(named)));
+    // Without a JSON content type, Express 5 leaves the body undefined; that
+    // must not reach the store (it would wipe the list).
+    const untyped = await fetch(`${server.url}/api/dishes`, { method: 'POST', body: JSON.stringify(list) });
+    assert.equal(untyped.status, 400, rer('POST a valid list as text/plain', '400', String(untyped.status)));
+    assert.deepEqual(server.stored(), list, rer('POST a valid list as text/plain, then read the data file',
+      'the list from before, untouched', JSON.stringify(server.stored())));
+  } finally {
+    await server.stop();
+  }
+}
+
+// A data file that isn't JSON fails loudly (500) and is never overwritten.
+{
+  const server = await startServer([]);
+  try {
+    fs.writeFileSync(server.dataFile, '{"dishes": [ oops');
+    const read = await fetch(`${server.url}/api/dishes`);
+    assert.equal(read.status, 500, rer('corrupt the data file; GET /api/dishes', '500', String(read.status)));
+    const write = await server.post(FIXTURE);
+    assert.equal(write.status, 500, rer('corrupt the data file; POST a list', '500', String(write.status)));
+    const onDisk = fs.readFileSync(server.dataFile, 'utf8');
+    assert.equal(onDisk, '{"dishes": [ oops', rer('corrupt the data file; GET, then POST',
+      'the corrupt file left exactly as it was, for a human to look at', JSON.stringify(onDisk)));
+  } finally {
+    await server.stop();
+  }
+}
+
+// The built page is served at /, and unknown paths are 404s.
+{
+  const server = await startServer([]);
+  try {
+    const page = await fetch(`${server.url}/`);
+    const html = await page.text();
+    const built = fs.readFileSync(path.join(ROOT, 'dist/index.html'), 'utf8');
+    assert.ok(page.status === 200 && html === built, rer('build the app; GET /',
+      '200 and the built dist/index.html', `${page.status}, ${html === built ? 'same' : 'different'} HTML`));
+    const asset = html.match(/src="(\/assets\/[^"]+\.js)"/)[1];
+    const script = await fetch(`${server.url}${asset}`);
+    assert.equal(script.status, 200, rer(`GET the page's script, ${asset}`, '200', String(script.status)));
+    const missing = await fetch(`${server.url}/no-such-page`);
+    assert.equal(missing.status, 404, rer('GET /no-such-page', '404', String(missing.status)));
+  } finally {
+    await server.stop();
+  }
+}
+
+// Started on a port that's already taken, the server crashes instead of
+// claiming to run.
+{
+  const server = await startServer([]);
+  try {
+    const port = new URL(server.url).port;
+    const second = spawn(process.execPath, ['server.js'], {
+      cwd: ROOT, env: { ...process.env, API_PORT: port, DATA_FILE: server.dataFile }, stdio: 'ignore',
+    });
+    const code = await new Promise((resolve) => {
+      const timer = setTimeout(() => { second.kill(); resolve('still running after 5s'); }, 5000);
+      second.once('exit', (exitCode) => { clearTimeout(timer); resolve(exitCode); });
+    });
+    assert.ok(typeof code === 'number' && code !== 0, rer(`start a second server.js on port ${port}, which the first one holds`,
+      'it exits at once with a nonzero code', String(code)));
+  } finally {
+    await server.stop();
+  }
+}
+
+console.log('qual pass: server API, data file, static page, and loud failures');

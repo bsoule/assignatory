@@ -1,5 +1,4 @@
 .git
-.config
 .agents
 node_modules
 dist

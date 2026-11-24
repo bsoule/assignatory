@@ -76,7 +76,7 @@ const HelpDialog = ({ onClose }) => {
         </ul>
 
         <div className="border-t-2 border-dashed border-ink/15 px-4 py-3 text-right">
-          <button ref={closeButton} onClick={onClose} className="tab bg-ink px-5 py-1.5 text-lg text-cream">
+          <button ref={closeButton} onClick={onClose} data-qual="close-help" className="tab bg-ink px-5 py-1.5 text-lg text-cream">
             Got it
           </button>
         </div>
