@@ -55,8 +55,8 @@ const HelpDialog = ({ onClose }) => {
           <Step chip={<Chip className="bg-tomato"><Plus size={20} strokeWidth={3} /></Chip>}>
             <strong className="font-semibold">Add a dish.</strong> Type it in the box at the top, then tap the red plus.
           </Step>
-          <Step chip={<Chip className="bg-leaf"><Check size={18} strokeWidth={3} /></Chip>}>
-            <strong className="font-semibold">Bringing your dish?</strong> Tap the green check next to your name.
+          <Step chip={<Chip className="bg-cream"><Check size={18} strokeWidth={3} /></Chip>}>
+            <strong className="font-semibold">Bringing your dish?</strong> Tap the check next to your name.
           </Step>
           <Step chip={<Chip className="bg-cream"><X size={18} strokeWidth={3} /></Chip>}>
             <strong className="font-semibold">Can’t bring it, or it should be someone else’s?</strong> Tap

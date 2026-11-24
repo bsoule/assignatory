@@ -24,6 +24,7 @@ This file is for agents. Humans get out!
 - Lucide's `Edit2` and `HelpCircle` are now aliases of `Pen` and `CircleQuestionMark`.
 - The upgrade grew the JS bundle from 52 to 76 KB gzipped, mostly React 19's larger react-dom. Lucide tree-shakes: only the imported icons ship (checked 2026-11-24).
 - Tailwind 4 applies `hover:` styles only on devices that can hover, so on phones a tapped button no longer stays highlighted. Its preflight also turns off the browser's own tap flash (`-webkit-tap-highlight-color: transparent`). So, the usual convention: every hover look also shows while pressed (`active:` twin), which is a phone's only tap feedback. Keep the twins in step when restyling. No qual pins this, since it's purely visual.
+- Green in a dish row means confirmed (the human's task [CHK], 2026-11-24). The ✓ button is cream until hovered or pressed, like Decline turning red. quals/confirmed-look.qual.mjs pins this without pinning a color. The help card's sentence "Tap the green check next to your name." awaits the human's rewording (TODO in src/HelpDialog.jsx).
 - macOS filenames ignore case, and imports omit extensions, so a `src/schedule.js` would capture `import Schedule from './Schedule'` (meant for Schedule.jsx). That's why the parser is src/parseSchedule.js. After such a collision, restart the dev server: Vite caches the wrong resolution.
 
 ## Quals

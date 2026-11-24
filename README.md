@@ -6,13 +6,16 @@ This file is only for humans. Robots see IGNOREME.md
 
 # Next tasks
 
-* [CHK] i think the checkmarks shouldn't have a green background when the person's name isn't confirmed. turning green like that should be the visual indicator that it's been confirmed, i think.
+* [ENT] having to hit enter to make a new name stick is confusing and probably doesn't work on mobile at all. basically should always have some sort of explicit submit button.
 * [WHO] bigger UX thing: someone's gonna end up checking the confirm button on behalf of someone else and confusion's gonna ensue. the page could make you say who you are first or something? i guess this needs more thought, or maybe i'm wrong and it will be fine with this many users.
+* [WH2] possibly subsuming [WHO], drop the "Mine"
 * [LPS] can we do all the standard link preview stuff?
+* [SIM] quals to make sure we fail gracefully or at least loudly if two people make changes at once that can't be automatically reconciled.
 
 
 Brainstorming dishes, list from Thanksgiving 2025:
 
+```
 Turkey
 Stuffing
 Gravy
@@ -38,3 +41,4 @@ Punch
 Manhattans
 Wine
 Beer
+```

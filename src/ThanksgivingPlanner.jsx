@@ -169,7 +169,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
           />
         ) : dish.status === 'confirmed' ? (
           <>
-            <span className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-leaf px-3 py-0.5 font-medium">
+            <span data-qual="assignee" className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-leaf px-3 py-0.5 font-medium">
               {dish.assignedTo}
               <Check size={16} strokeWidth={3} role="img" aria-label="confirmed" />
             </span>
@@ -180,10 +180,10 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
         ) : (
           <>
             {/* Dashed outline: asked, but not confirmed yet */}
-            <span className="rounded-full border-2 border-dashed border-ink/60 px-3 py-0.5 font-medium">
+            <span data-qual="assignee" className="rounded-full border-2 border-dashed border-ink/60 px-3 py-0.5 font-medium">
               {dish.assignedTo}
             </span>
-            <button onClick={() => confirm(dish.id)} data-qual="confirm" className="round-button bg-leaf" title="Confirm">
+            <button onClick={() => confirm(dish.id)} data-qual="confirm" className="round-button bg-cream hover:bg-leaf active:bg-leaf" title="Confirm">
               <Check size={18} strokeWidth={3} />
             </button>
             <button onClick={() => release(dish.id)} data-qual="decline" className="round-button bg-cream hover:bg-tomato active:bg-tomato" title="Decline">
