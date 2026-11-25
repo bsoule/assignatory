@@ -90,7 +90,7 @@ const postDishes = async (dishes) => listFrom(await fetch(`${API_URL}/dishes`, {
 
 // Hooks for the quals (quals/app.mjs), which find elements by these and never
 // by words or looks: data-dish={id} on each dish's row, data-view={id} on each
-// view's button, and data-qual="..." on each control a qual uses.
+// view's button, and data-qual="..." on each other element a qual uses.
 const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, confirm, release }) => {
   if (editing && editing.id === dish.id) {
     const set = (fields) => setEditing({ ...editing, ...fields });
@@ -129,7 +129,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
           onKeyDown={onKeyDown}
           className="field min-w-[8rem] flex-1 py-1.5"
         />
-        <button onClick={saveEdit} data-qual="save" className="round-button bg-leaf" title="Save">
+        <button onClick={saveEdit} data-qual="save" className="round-button bg-cream hover:bg-leaf active:bg-leaf" title="Save">
           <Check size={18} strokeWidth={3} />
         </button>
         <button onClick={() => setEditing(null)} data-qual="cancel" className="ghost-button" title="Cancel">
@@ -213,7 +213,10 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
 const ThanksgivingPlanner = () => {
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Each kind of failure keeps its alert until that kind of thing works again:
+  // a refresh that works says nothing about a save that didn't.
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [route, setRoute] = useState(readRoute);
   const [me, setMe] = useState(() => recall(ME_KEY));
   // The instructions open by themselves on a first visit.
@@ -234,10 +237,10 @@ const ThanksgivingPlanner = () => {
     const loadDishes = async (latest) => {
       try {
         setDishes(await latest());
-        setError('');
+        setLoadError('');
       } catch (err) {
         console.error('Error loading dishes:', err);
-        setError("Couldn't load the dish list. Try reloading the page.");
+        setLoadError("Couldn't load the dish list. Try reloading the page.");
       }
       setLoading(false);
     };
@@ -270,11 +273,12 @@ const ThanksgivingPlanner = () => {
   const change = async (update) => {
     try {
       setDishes(await postDishes(update(await fetchDishes())));
-      setError('');
+      setSaveError('');
+      setLoadError('');  // the save loaded the latest list first
       return true;
     } catch (err) {
       console.error('Error saving dishes:', err);
-      setError("Couldn't save that change. Check your connection and try again.");
+      setSaveError("Couldn't save that change. Check your connection and try again?");
       return false;
     }
   };
@@ -370,7 +374,7 @@ const ThanksgivingPlanner = () => {
           </div>
         </header>
 
-        {[route.problem, error].filter(Boolean).map((message) => (
+        {[route.problem, loadError, saveError].filter(Boolean).map((message) => (
           <div key={message} role="alert" className="card flex items-center gap-3 px-4 py-3 font-medium">
             <span
               aria-hidden="true"

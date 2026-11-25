@@ -3,7 +3,7 @@
 // then the form clears. A blank name adds nothing.
 import assert from 'node:assert/strict';
 import { CATEGORIES, guessCategory } from '../src/dishes.js';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, row, savesDuring, saving, startServer } from './app.mjs';
+import { FIXTURE, buildApp, inEveryEngine, openApp, rer, row, savesDuring, saving, settled, startServer } from './app.mjs';
 
 const newOnes = (before, after) => after.filter((dish) => !before.some((old) => old.id === dish.id));
 const oldOnes = (before, after) => after.filter((dish) => before.some((old) => old.id === dish.id));
@@ -33,7 +33,8 @@ await inEveryEngine(async (browser, engine) => {
       name: 'Sweet potato pie', category: guessCategory('Sweet potato pie'), notes: '', assignedTo: '', status: 'unassigned',
     }, rer(act1, 'name trimmed, the guessed category, no notes, unclaimed', JSON.stringify(fields)));
     await row(page, id).waitFor();
-    assert.equal(await name.inputValue(), '', rer(act1, 'the box emptied', JSON.stringify(await name.inputValue())));
+    const emptied = await settled(() => name.inputValue(), '');
+    assert.equal(emptied, '', rer(act1, 'the box emptied', JSON.stringify(emptied)));
 
     // A category picked by hand beats the guess, and goes back to auto afterwards.
     const dish = 'Pie-flavored soda';
@@ -49,9 +50,10 @@ await inEveryEngine(async (browser, engine) => {
     const act2 = `${engine}: pick the category ${JSON.stringify(picked)}, type "${dish}" (guessed as ${JSON.stringify(guessCategory(dish))}), click add`;
     assert.deepEqual(added.map((d) => [d.name, d.category]), [[dish, picked]], rer(act2,
       `one dish added, filed under ${JSON.stringify(picked)}`, JSON.stringify(added)));
-    assert.equal(await category.inputValue(), '', rer(act2, 'the category back on auto (empty value)',
-      JSON.stringify(await category.inputValue())));
-    assert.equal(await name.inputValue(), '', rer(act2, 'the box emptied', JSON.stringify(await name.inputValue())));
+    const reset = await settled(() => category.inputValue(), '');
+    assert.equal(reset, '', rer(act2, 'the category back on auto (empty value)', JSON.stringify(reset)));
+    const emptiedAgain = await settled(() => name.inputValue(), '');
+    assert.equal(emptiedAgain, '', rer(act2, 'the box emptied', JSON.stringify(emptiedAgain)));
 
     // Blank names add nothing.
     before = server.stored();

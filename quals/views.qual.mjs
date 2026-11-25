@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { allPeople, groupByCategory, isBringing, isPie, isUnclaimed } from '../src/dishes.js';
 import { parseSchedule } from '../src/parseSchedule.js';
-import { FIXTURE, ROOT, buildApp, expectShown, inEveryEngine, openApp, rer, startServer } from './app.mjs';
+import { FIXTURE, ROOT, buildApp, expectShown, inEveryEngine, openApp, rer, settled, startServer } from './app.mjs';
 
 const ids = (dishes) => dishes.map((d) => d.id);
 const everything = ids(groupByCategory(FIXTURE).flatMap((group) => group.dishes));
@@ -48,9 +48,9 @@ await inEveryEngine(async (browser, engine) => {
       const act = `${engine}: go to #${hash}`;
       await page.evaluate((h) => { window.location.hash = h; }, hash);
       await expectShown(page, expected, act, `dishes ${JSON.stringify(expected)}, in that order`);
-      const pressed = await page.locator('[data-view][aria-pressed="true"]').evaluateAll((buttons) => buttons.map((b) => b.dataset.view));
+      const pressed = await settled(() => page.locator('[data-view][aria-pressed="true"]').evaluateAll((buttons) => buttons.map((b) => b.dataset.view)), [view]);
       assert.deepEqual(pressed, [view], rer(act, `only the ${view} button pressed`, `pressed: ${JSON.stringify(pressed)}`));
-      const shown = await page.getByRole('alert').count();
+      const shown = await settled(() => page.getByRole('alert').count(), alerts ? 1 : 0);
       assert.equal(shown, alerts ? 1 : 0, rer(act, alerts ? 'an alert: the app never writes that hash' : 'no alert',
         `${shown} alerts`));
     }
@@ -91,15 +91,41 @@ await inEveryEngine(async (browser, engine) => {
     assert.equal(picked, '#mine/Sam', rer(`${engine}: in the Mine view, pick Sam`, 'the URL ends in #mine/Sam', picked));
     const mineCount = await page.locator('[data-view="mine"] [data-qual="count"]').textContent();
     assert.equal(mineCount, String(mine('Sam').length), rer(`${engine}: pick Sam`, `the Mine count is ${mine('Sam').length}`, mineCount));
-    await page.goto(`${server.url}/#mine`);
-    await page.locator('[data-qual="new-dish"]').waitFor();
-    await expectShown(page, mine('Sam'), `${engine}: pick Sam; then load the page fresh at #mine, with no name`, 'Sam\'s dishes: the pick is remembered');
+    // A new tab in the same browser: a fresh page load sharing localStorage. (A
+    // goto that changes only the hash wouldn't reload, and React would remember.)
+    const freshTab = async (url) => {
+      const tab = await page.context().newPage();
+      tab.on('pageerror', (error) => page.uncaught.push(error.message));
+      await tab.goto(url);
+      await tab.locator('[data-qual="new-dish"]').waitFor();
+      return tab;
+    };
+    const later = await freshTab(`${server.url}/#mine`);
+    await expectShown(later, mine('Sam'), `${engine}: pick Sam; then open a new tab at #mine, with no name`,
+      'Sam\'s dishes: the pick is remembered');
 
     // A name from the URL with a space in it comes back whole.
     await page.evaluate(() => { window.location.hash = 'mine/Mary%20Ann'; });
     await page.waitForFunction(() => document.querySelector('[data-qual="me"]')?.value === 'Mary Ann', null, { timeout: 3000 }).catch(() => {});
     const who = await page.locator('[data-qual="me"]').inputValue();
     assert.equal(who, 'Mary Ann', rer(`${engine}: go to #mine/Mary%20Ann`, 'the Mine view is for "Mary Ann"', JSON.stringify(who)));
+
+    // A link the app writes itself reads back without the bad-link alert, whatever
+    // the name holds (letters beyond ASCII, an apostrophe, parentheses, spaces):
+    // in the tab that picked the name, and opened fresh, as a shared link would be.
+    const odd = "Zoë O'Brien (Mom)";
+    await server.post([...FIXTURE, { id: 8, name: 'Gravy', assignedTo: odd, status: 'pending' }]);
+    const picker = await freshTab(`${server.url}/#mine`);
+    await picker.locator('[data-qual="me"]').selectOption(odd);
+    await expectShown(picker, [8], `${engine}: in a new tab's Mine view, pick ${odd}`, `the dish ${odd} is bringing`);
+    const pickAlerts = await settled(() => picker.getByRole('alert').count(), 0);
+    assert.equal(pickAlerts, 0, rer(`${engine}: in the Mine view, pick ${odd}`, 'no alert: the app wrote that link itself',
+      `${pickAlerts} alerts, at ${await picker.evaluate(() => window.location.hash)}`));
+    const link = await picker.evaluate(() => window.location.href);
+    const shared = await freshTab(link);
+    await expectShown(shared, [8], `${engine}: open ${link} in a new tab`, `the dish ${odd} is bringing`);
+    const linkAlerts = await settled(() => shared.getByRole('alert').count(), 0);
+    assert.equal(linkAlerts, 0, rer(`${engine}: open ${link} in a new tab`, 'no alert', `${linkAlerts} alerts`));
     assert.deepEqual(page.uncaught, [], rer(`${engine}: visit every view`, 'no uncaught errors', JSON.stringify(page.uncaught)));
   } finally {
     await server.stop();

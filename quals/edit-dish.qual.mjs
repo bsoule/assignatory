@@ -75,8 +75,9 @@ await inEveryEngine(async (browser, engine) => {
       await field(page, 1, 'edit-name').fill('   ');
       await field(page, 1, 'edit-name').press('Enter');
     });
-    assert.ok(blank === 0 && await field(page, 1, 'edit-name').count() === 1, rer(`${engine}: blank Turkey's name in the editor, press Enter`,
-      'no save, the editor still open', `${blank} saves, editor ${await field(page, 1, 'edit-name').count() ? 'open' : 'closed'}`));
+    const stillOpen = await field(page, 1, 'edit-name').count();
+    assert.ok(blank === 0 && stillOpen === 1, rer(`${engine}: blank Turkey's name in the editor, press Enter`,
+      'no save, the editor still open', `${blank} saves, editor ${stillOpen ? 'open' : 'closed'}`));
     await field(page, 1, 'cancel').click();
 
     // A dish with no stored category opens with the guessed one.

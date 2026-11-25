@@ -6,7 +6,7 @@
 // The next load or save that works clears the alert. The alert's words aren't
 // pinned.
 import assert from 'node:assert/strict';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, saving, shownIds, startServer } from './app.mjs';
+import { FIXTURE, buildApp, inEveryEngine, openApp, rer, saving, settled, shownIds, startServer } from './app.mjs';
 
 const alertShows = (page) => page.getByRole('alert').waitFor({ timeout: 3000 }).then(() => true, () => false);
 const alertGoes = (page) => page.getByRole('alert').waitFor({ state: 'detached', timeout: 3000 }).then(() => true, () => false);
@@ -31,8 +31,8 @@ await inEveryEngine(async (browser, engine) => {
     await refreshing.evaluate(() => window.dispatchEvent(new Event('focus')));
     const failedRefresh = `${engine}: open the page; make loading fail (500); the window regains focus`;
     assert.ok(await alertShows(refreshing), rer(failedRefresh, 'an alert on the page', 'no alert'));
-    assert.deepEqual(await shownIds(refreshing), shownBefore, rer(failedRefresh, 'the list it had still shown',
-      JSON.stringify(await shownIds(refreshing))));
+    const stillShown = await shownIds(refreshing);
+    assert.deepEqual(stillShown, shownBefore, rer(failedRefresh, 'the list it had still shown', JSON.stringify(stillShown)));
     await refreshing.unroute('**/api/dishes');
     await refreshing.evaluate(() => window.dispatchEvent(new Event('focus')));
     assert.ok(await alertGoes(refreshing), rer(`${failedRefresh}; let loading work again; the window regains focus`,
@@ -44,7 +44,8 @@ await inEveryEngine(async (browser, engine) => {
       const refused = await openApp(browser, odd);
       const act = `${engine}: store a dish whose status is "maybe" (bypassing the API); open the page`;
       assert.ok(await alertShows(refused), rer(act, 'an alert on the page', 'no alert'));
-      assert.deepEqual(await shownIds(refused), [], rer(act, 'no dishes shown', JSON.stringify(await shownIds(refused))));
+      const refusedShown = await shownIds(refused);
+      assert.deepEqual(refusedShown, [], rer(act, 'no dishes shown', JSON.stringify(refusedShown)));
       assert.deepEqual(refused.uncaught, [], rer(act, 'no uncaught errors', JSON.stringify(refused.uncaught)));
     } finally {
       await odd.stop();
@@ -62,8 +63,18 @@ await inEveryEngine(async (browser, engine) => {
     const saveAlert = await page.getByRole('alert').waitFor({ timeout: 3000 }).then(() => true, () => false);
     const failedAdd = `${engine}: make saves fail (500); type "Rolls" and press Enter`;
     assert.ok(saveAlert, rer(failedAdd, 'an alert on the page', 'no alert'));
-    assert.equal(await box.inputValue(), 'Rolls', rer(failedAdd, 'what was typed still in the box', JSON.stringify(await box.inputValue())));
+    const kept = await box.inputValue();
+    assert.equal(kept, 'Rolls', rer(failedAdd, 'what was typed still in the box', JSON.stringify(kept)));
     assert.deepEqual(server.stored(), before, rer(failedAdd, 'the store unchanged', JSON.stringify(server.stored())));
+
+    // A refresh that works (loading still does) says nothing about the failed
+    // save, so the save's alert stays.
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForResponse((r) => r.request().method() === 'GET' && new URL(r.url()).pathname === '/api/dishes');
+    await page.waitForTimeout(300);
+    const stays = await page.getByRole('alert').count();
+    assert.equal(stays, 1, rer(`${failedAdd}; the window regains focus, and the refresh works`,
+      'the save\'s alert still there', `${stays} alerts`));
 
     await page.unroute('**/api/dishes');
     await saving(page, () => box.press('Enter'));
@@ -71,7 +82,8 @@ await inEveryEngine(async (browser, engine) => {
     const retried = `${failedAdd}; let saves work again; press Enter`;
     assert.equal(await page.getByRole('alert').count(), 0, rer(retried, 'the alert gone', 'it is still there'));
     assert.ok(server.stored().some((d) => d.name === 'Rolls'), rer(retried, 'Rolls in the store', JSON.stringify(server.stored())));
-    assert.equal(await box.inputValue(), '', rer(retried, 'the box emptied', JSON.stringify(await box.inputValue())));
+    const emptied = await settled(() => box.inputValue(), '');
+    assert.equal(emptied, '', rer(retried, 'the box emptied', JSON.stringify(emptied)));
     assert.deepEqual(page.uncaught, [], rer(failedAdd, 'no uncaught errors', JSON.stringify(page.uncaught)));
   } finally {
     await server.stop();

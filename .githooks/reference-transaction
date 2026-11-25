@@ -1,7 +1,7 @@
 #!/bin/sh
 # Agents may not change this repo's refs (AGENTS.md rule 15: the human
-# commits). Claude Code sets AI_AGENT for everything it runs
-# (.claude/settings.json's env), so any git it starts, even from inside a
+# commits). Claude Code sets AI_AGENT for everything it runs (and an opted-in
+# .claude/settings.local.json sets it too), so any git it starts, even from inside a
 # script, ends up here when it tries to commit, branch, tag, reset, stash,
 # merge, fetch or pull. The human's git, run without AI_AGENT, is untouched.
 # Git runs this hook for every ref change; failing in the "prepared" state

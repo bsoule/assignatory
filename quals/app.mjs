@@ -7,13 +7,15 @@
 //
 // Quals find things through hooks, never through words or looks, so rewording
 // or restyling the page can't break them: data-dish={id} on each dish's row,
-// data-view={id} on each view's button, and data-qual="..." on each control.
+// data-view={id} on each view's button, and data-qual="..." on each other
+// element a qual uses (controls, name pills, schedule rows).
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { chromium, firefox, webkit } from 'playwright-core';
 import { build } from 'vite';
 import { CATEGORIES } from '../src/dishes.js';
@@ -143,6 +145,20 @@ export async function expectShown(page, ids, replicata, expectata) {
   ).catch(() => {});
   const shown = await shownIds(page);
   assert.deepEqual(shown, ids, rer(replicata, expectata, `the page shows dish ids ${JSON.stringify(shown)}`));
+}
+
+// Reads `read()` until it gives `want` or 3 seconds pass, and returns the last
+// reading, for the qual to assert on. For page state that settles a moment
+// after whatever changed it: React renders, and runs effects, after the event
+// or the server answer that set them off.
+export async function settled(read, want) {
+  const deadline = Date.now() + 3000;
+  let got = await read();
+  while (!isDeepStrictEqual(got, want) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    got = await read();
+  }
+  return got;
 }
 
 const isSave = (request) => request.method() === 'POST' && new URL(request.url()).pathname === '/api/dishes';

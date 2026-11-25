@@ -33,6 +33,8 @@ await inEveryEngine(async (browser, engine) => {
   const server = await startServer(FIXTURE);
   try {
     const page = await openApp(browser, server);
+    assert.deepEqual(server.stored(), FIXTURE, rer(`${engine}: start server.js with a full list; open the page`,
+      'the list untouched: only an empty list gets seeded', JSON.stringify(server.stored())));
     await server.post([]);
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     const act = `${engine}: open the page on a full list; another guest saves an empty list; the window regains focus`;

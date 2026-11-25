@@ -1,7 +1,7 @@
 // Keeps agents to read-only git (AGENTS.md rule 15: the human commits; agents
-// only read). Claude Code runs this before every Bash command, as the
-// PreToolUse hook in .claude/settings.json, with the tool call as JSON on
-// stdin. Every word "git" in the command, wherever it appears (after &&, inside
+// only read). For whoever opts in (see IGNOREME.md's Git guard section),
+// Claude Code runs this before every Bash command, as a PreToolUse hook in
+// their .claude/settings.local.json, with the tool call as JSON on stdin. Every word "git" in the command, wherever it appears (after &&, inside
 // bash -c '...', after env, xargs or a path like /usr/bin/git), must be followed
 // by a subcommand in READ_ONLY. Otherwise this exits with code 2, which blocks
 // the command and shows the agent why. Text that only mentions git, like

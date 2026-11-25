@@ -4,7 +4,7 @@
 // them, handing focus back to the help button; once closed they stay closed
 // on later visits; the help button reopens them.
 import assert from 'node:assert/strict';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, startServer } from './app.mjs';
+import { FIXTURE, buildApp, inEveryEngine, openApp, rer, settled, startServer } from './app.mjs';
 
 const focused = (page) => page.evaluate(() => document.activeElement?.dataset.qual ?? document.activeElement?.tagName);
 const bodyOverflow = (page) => page.evaluate(() => document.body.style.overflow);
@@ -17,22 +17,28 @@ await inEveryEngine(async (browser, engine) => {
     const dialog = page.getByRole('dialog');
     await dialog.waitFor();
     const first = `${engine}: open the page for the first time`;
-    assert.equal(await dialog.getAttribute('aria-modal'), 'true', rer(first, 'a modal dialog (aria-modal="true")',
-      String(await dialog.getAttribute('aria-modal'))));
-    assert.equal(await focused(page), 'close-help', rer(first, 'focus on its close button', String(await focused(page))));
-    assert.equal(await bodyOverflow(page), 'hidden', rer(first, 'the page behind locked from scrolling', JSON.stringify(await bodyOverflow(page))));
+    const modal = await dialog.getAttribute('aria-modal');
+    assert.equal(modal, 'true', rer(first, 'a modal dialog (aria-modal="true")', String(modal)));
+    const focus = await settled(() => focused(page), 'close-help');
+    assert.equal(focus, 'close-help', rer(first, 'focus on its close button', String(focus)));
+    const locked = await settled(() => bodyOverflow(page), 'hidden');
+    assert.equal(locked, 'hidden', rer(first, 'the page behind locked from scrolling', JSON.stringify(locked)));
 
     for (const key of ['Tab', 'Shift+Tab']) {
       await page.keyboard.press(key);
-      assert.equal(await focused(page), 'close-help', rer(`${first}; press ${key}`, 'focus stays on the close button', String(await focused(page))));
+      const stayed = await focused(page);
+      assert.equal(stayed, 'close-help', rer(`${first}; press ${key}`, 'focus stays on the close button', String(stayed)));
     }
     await dialog.click({ position: { x: 12, y: 12 } });
+    await page.waitForTimeout(300);  // time enough for it to close, if it were going to
     assert.equal(await dialog.count(), 1, rer(`${first}; click inside the dialog, away from its button`, 'the dialog stays open', 'it closed'));
 
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'detached' });
-    assert.equal(await focused(page), 'help', rer(`${first}; press Escape`, 'focus back on the help button', String(await focused(page))));
-    assert.equal(await bodyOverflow(page), '', rer(`${first}; press Escape`, 'the page scrolls again', JSON.stringify(await bodyOverflow(page))));
+    const back = await settled(() => focused(page), 'help');
+    assert.equal(back, 'help', rer(`${first}; press Escape`, 'focus back on the help button', String(back)));
+    const unlocked = await settled(() => bodyOverflow(page), '');
+    assert.equal(unlocked, '', rer(`${first}; press Escape`, 'the page scrolls again', JSON.stringify(unlocked)));
 
     await page.reload();
     await page.locator('[data-qual="new-dish"]').waitFor();
