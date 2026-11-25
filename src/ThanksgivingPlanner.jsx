@@ -5,6 +5,7 @@ import Card from './Card';
 import HelpDialog from './HelpDialog';
 import Schedule from './Schedule';
 import {
+  API_URL,
   CATEGORIES,
   guessCategory,
   categoryOf,
@@ -16,8 +17,6 @@ import {
   listProblems,
   sameDish,
 } from './dishes';
-
-const API_URL = '/api';  // This will be the base URL for our API
 
 // Initial default dishes if database is empty
 const DEFAULT_DISHES = [
@@ -50,6 +49,11 @@ const BAD_ROUTE = `Oops, the URL got mangled so we're just showing everything...
 // it, so your change wasn't made; the list now shows the dish as it is.
 const CONFLICT = `Oops, someone changed this out from under you!`;
 
+// alert copy for when the app was updated, since this page was loaded,
+// in a way this page can't work with, so it can neither load nor save:
+// reload the page (trying again won't help).
+const OUT_OF_DATE = `Oops, you have an old version of the app. Try reloading?`;
+
 // The view lives in the URL (#pies, #mine/Bee) so a link can point straight at one.
 // A hash the app wouldn't have written (routeHash) isn't guessed at: it shows the
 // whole list under an alert (route.problem).
@@ -76,9 +80,18 @@ const remember = (key, value) => {
   try { localStorage.setItem(key, value); } catch { /* private window: fine */ }
 };
 
+// What listFrom throws when the server serves nothing at API_URL (a 404): the
+// server is newer than this page, so only reloading the page can help.
+class OutOfDate extends Error {}
+
+// The alert for a load or save that failed (err): `otherwise`, unless the
+// page is out of date.
+const alertFor = (err, otherwise) => (err instanceof OutOfDate ? OUT_OF_DATE : otherwise);
+
 // The dish list in a response, or a throw if the response failed or holds a
 // list the app couldn't have saved (listProblems in dishes.js).
 const listFrom = async (response) => {
+  if (response.status === 404) throw new OutOfDate(`Nothing at ${response.url}: the app was updated since this page was loaded`);
   const dishes = await response.json();
   const problems = listProblems(dishes);
   if (!response.ok || problems.length > 0) throw new Error(`Bad response (${response.status}): ${problems.join(' ')}`);
@@ -275,7 +288,7 @@ const ThanksgivingPlanner = () => {
         setLoadError('');
       } catch (err) {
         console.error('Error loading dishes:', err);
-        setLoadError("Couldn't load the dish list. Try reloading the page.");
+        setLoadError(alertFor(err, "Couldn't load the dish list. Try reloading the page."));
       }
       setLoading(false);
     };
@@ -330,7 +343,7 @@ const ThanksgivingPlanner = () => {
       throw new Error('Other people\'s saves beat this one three times in a row');
     } catch (err) {
       console.error('Error saving dishes:', err);
-      setSaveError("Couldn't save that change. Check your connection and try again?");
+      setSaveError(alertFor(err, "Couldn't save that change. Check your connection and try again?"));
       return false;
     }
   };
@@ -427,7 +440,8 @@ const ThanksgivingPlanner = () => {
           </div>
         </header>
 
-        {[route.problem, loadError, saveError].filter(Boolean).map((message) => (
+        {/* Each message once: an out-of-date page's load and save alerts are the same. */}
+        {[...new Set([route.problem, loadError, saveError].filter(Boolean))].map((message) => (
           <div key={message} role="alert" className="card flex items-center gap-3 px-4 py-3 font-medium">
             <span
               aria-hidden="true"

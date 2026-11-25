@@ -11,7 +11,7 @@
 // "At once" is made exact by holding one page's save in flight until the
 // other's has landed. Alert words aren't pinned.
 import assert from 'node:assert/strict';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, row, saving, settled, startServer } from './app.mjs';
+import { DISHES_PATH, FIXTURE, buildApp, inEveryEngine, openApp, rer, row, saving, settled, startServer } from './app.mjs';
 
 // Holds the page's next save in flight: `held` resolves once it's being held,
 // and release() lets it go on.
@@ -21,7 +21,7 @@ async function holdNextSave(page) {
   let heldIt;
   const held = new Promise((resolve) => { heldIt = resolve; });
   let used = false;
-  await page.route('**/api/dishes', async (route) => {
+  await page.route(`**${DISHES_PATH}`, async (route) => {
     if (route.request().method() === 'POST' && !used) {
       used = true;
       heldIt();

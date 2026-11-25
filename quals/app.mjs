@@ -18,10 +18,15 @@ import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { chromium, firefox, webkit } from 'playwright-core';
 import { build } from 'vite';
-import { CATEGORIES } from '../src/dishes.js';
+import { API_URL, CATEGORIES } from '../src/dishes.js';
 
 export const ROOT = path.dirname(import.meta.dirname);
 export const ENGINES = { chromium, firefox, webkit };
+
+// The dish list's path on the server, under API_URL (which names the API's
+// version). Quals that talk to the server, or watch the page's requests, use
+// this, so bumping the version moves them along.
+export const DISHES_PATH = `${API_URL}/dishes`;
 
 // An assert message in the three parts of a proper bug report (AGENTS.md rule 14).
 export const rer = (replicata, expectata, resultata) =>
@@ -70,10 +75,10 @@ export async function startServer(dishes) {
   const url = `http://127.0.0.1:${port}`;
   // Ready once it answers (not on its log line, whose words may change).
   for (let tries = 0; ; tries++) {
-    const answered = await fetch(`${url}/api/dishes`).then((r) => r.status, () => 0);
+    const answered = await fetch(`${url}${DISHES_PATH}`).then((r) => r.status, () => 0);
     if (answered !== 0) break;
     assert.ok(tries < 200 && child.exitCode === null, rer(`node server.js with API_PORT=${port} and DATA_FILE=${dataFile}`,
-      'it answers GET /api/dishes within 5 seconds', `it ${child.exitCode === null ? 'never answered' : `exited (${child.exitCode})`}. Its output:\n${output}`));
+      `it answers GET ${DISHES_PATH} within 5 seconds`, `it ${child.exitCode === null ? 'never answered' : `exited (${child.exitCode})`}. Its output:\n${output}`));
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   return {
@@ -81,12 +86,20 @@ export async function startServer(dishes) {
     dataFile,
     // The stored list, or undefined while there's no data file.
     stored: () => (fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile, 'utf8')).dishes : undefined),
-    // What another guest's tab would do: save a whole list straight to the API.
-    post: (list) => fetch(`${url}/api/dishes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list),
-    }),
+    // What another guest's tab would do: save a whole list straight to the API,
+    // as a change to the list's current version. It must save (a 409 would mean
+    // the page saved in between), or the qual would go on as if it had.
+    post: async (list) => {
+      const latest = await fetch(`${url}${DISHES_PATH}`);
+      const saved = await fetch(`${url}${DISHES_PATH}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Dishes-Version': latest.headers.get('dishes-version') },
+        body: JSON.stringify(list),
+      });
+      assert.equal(saved.status, 200, rer(`another guest saves a list of ${list.length} dishes (GET ${DISHES_PATH} for its version, then POST naming it)`,
+        '200: saved', `${saved.status} ${await saved.clone().text()}`));
+      return saved;
+    },
     stop: async () => {
       if (child.exitCode === null) {
         const exited = new Promise((resolve) => child.once('exit', resolve));
@@ -113,14 +126,14 @@ export async function inEveryEngine(qual) {
 // The app in a fresh browser context, loaded. Requests that would leave the
 // machine (the web font) get an empty answer, so no qual depends on the
 // network. Unless dismissHelp is false, the first-visit instructions are
-// closed. apiFails makes every /api/dishes request fail with a 500. `context`
+// closed. apiFails makes every DISHES_PATH request fail with a 500. `context`
 // is passed to Playwright's newContext (a phone: { hasTouch: true, viewport }).
 // Uncaught errors are collected in page.uncaught for the qual to assert on.
 export async function openApp(browser, server, { hash = '', dismissHelp = true, apiFails = false, context: options = {} } = {}) {
   const context = await browser.newContext(options);
   await context.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (route) => route.fulfill({ status: 200, body: '' }));
   if (apiFails) {
-    await context.route('**/api/dishes', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }));
+    await context.route(`**${DISHES_PATH}`, (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }));
   }
   const page = await context.newPage();
   page.uncaught = [];
@@ -162,7 +175,7 @@ export async function settled(read, want) {
   return got;
 }
 
-const isSave = (request) => request.method() === 'POST' && new URL(request.url()).pathname === '/api/dishes';
+const isSave = (request) => request.method() === 'POST' && new URL(request.url()).pathname === DISHES_PATH;
 
 // Does `act`, then waits for the page's save of the list to come back.
 export async function saving(page, act) {

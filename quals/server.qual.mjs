@@ -5,15 +5,15 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { FIXTURE, ROOT, buildApp, rer, startServer } from './app.mjs';
+import { DISHES_PATH, FIXTURE, ROOT, buildApp, rer, startServer } from './app.mjs';
 
 await buildApp();
 
 const getDishes = async (server) => {
-  const response = await fetch(`${server.url}/api/dishes`);
-  return { status: response.status, body: await response.json() };
+  const response = await fetch(`${server.url}${DISHES_PATH}`);
+  return { status: response.status, body: await response.json().catch(() => null) };  // null: not JSON
 };
-const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`, {
+const postRaw = (server, body, headers = {}) => fetch(`${server.url}${DISHES_PATH}`, {
   method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body,
 });
 
@@ -22,7 +22,7 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
   const server = await startServer(undefined);
   try {
     const { status, body } = await getDishes(server);
-    assert.deepEqual([status, body], [200, []], rer('start server.js with no data file; GET /api/dishes',
+    assert.deepEqual([status, body], [200, []], rer(`start server.js with no data file; GET ${DISHES_PATH}`,
       '200 and an empty list', `${status} ${JSON.stringify(body)}`));
     assert.ok(!fs.existsSync(server.dataFile), rer('the same GET', 'no data file created by a read', 'the file exists'));
   } finally {
@@ -37,10 +37,10 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
     const list = [...FIXTURE.slice(1), { id: 8, name: 'Gravy', assignedTo: 'Sam', status: 'pending' }];
     const response = await server.post(list);
     const echoed = await response.json();
-    assert.deepEqual([response.status, echoed], [200, list], rer('POST a list to /api/dishes',
+    assert.deepEqual([response.status, echoed], [200, list], rer(`POST a list to ${DISHES_PATH}`,
       '200, with the list echoed back', `${response.status} ${JSON.stringify(echoed)}`));
     const { status, body } = await getDishes(server);
-    assert.deepEqual([status, body], [200, list], rer('POST a list, then GET /api/dishes',
+    assert.deepEqual([status, body], [200, list], rer(`POST a list, then GET ${DISHES_PATH}`,
       '200 and exactly the posted list', `${status} ${JSON.stringify(body)}`));
     assert.deepEqual(server.stored(), list, rer('POST a list, then read the data file',
       'the file holds exactly the posted list', JSON.stringify(server.stored())));
@@ -62,7 +62,7 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
     for (const [label, body] of invalid) {
       const bad = await postRaw(server, body);
       const answer = await bad.json().catch(() => null);
-      assert.ok(bad.status === 400, rer(`POST ${label} to /api/dishes`, '400', `${bad.status} ${JSON.stringify(answer)}`));
+      assert.ok(bad.status === 400, rer(`POST ${label} to ${DISHES_PATH}`, '400', `${bad.status} ${JSON.stringify(answer)}`));
       assert.deepEqual(server.stored(), list, rer(`POST ${label}, then read the data file`,
         'the list from before, untouched', JSON.stringify(server.stored())));
     }
@@ -71,7 +71,7 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
       'a JSON answer whose "error" lists the problems', JSON.stringify(named)));
     // Without a JSON content type, Express 5 leaves the body undefined; that
     // must not reach the store (it would wipe the list).
-    const untyped = await fetch(`${server.url}/api/dishes`, { method: 'POST', body: JSON.stringify(list) });
+    const untyped = await fetch(`${server.url}${DISHES_PATH}`, { method: 'POST', body: JSON.stringify(list) });
     assert.equal(untyped.status, 400, rer('POST a valid list as text/plain', '400', String(untyped.status)));
     assert.deepEqual(server.stored(), list, rer('POST a valid list as text/plain, then read the data file',
       'the list from before, untouched', JSON.stringify(server.stored())));
@@ -83,16 +83,15 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
 // Versions ([SIM] in the human's task list): each list has one, sent in a
 // Dishes-Version header. A save naming the version it changes (the same header)
 // goes through only if that's still the current one, so it can't overwrite a
-// save it never saw. A save naming none (pages loaded before versions existed)
-// goes through as before.
+// save it never saw. A save naming none is refused the same way.
 {
   const server = await startServer(FIXTURE);
   try {
-    const version = async () => (await fetch(`${server.url}/api/dishes`)).headers.get('dishes-version');
+    const version = async () => (await fetch(`${server.url}${DISHES_PATH}`)).headers.get('dishes-version');
     const v1 = await version();
-    assert.ok(typeof v1 === 'string' && v1 !== '', rer('GET /api/dishes', 'a Dishes-Version header, the list\'s version', String(v1)));
+    assert.ok(typeof v1 === 'string' && v1 !== '', rer(`GET ${DISHES_PATH}`, 'a Dishes-Version header, the list\'s version', String(v1)));
     const v1again = await version();
-    assert.equal(v1again, v1, rer('GET /api/dishes twice, nothing saved in between', 'the same version both times', `${v1}, then ${v1again}`));
+    assert.equal(v1again, v1, rer(`GET ${DISHES_PATH} twice, nothing saved in between`, 'the same version both times', `${v1}, then ${v1again}`));
 
     const theirs = FIXTURE.map((d) => (d.id === 3 ? { ...d, assignedTo: 'Pat', status: 'pending' } : d));
     const saved = await postRaw(server, JSON.stringify(theirs), { 'Dishes-Version': v1 });
@@ -110,8 +109,23 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
     const current = await postRaw(server, JSON.stringify(FIXTURE), { 'Dishes-Version': v2 });
     assert.equal(current.status, 200, rer('POST naming the current version', '200', String(current.status)));
     const unversioned = await postRaw(server, JSON.stringify(theirs));
-    assert.equal(unversioned.status, 200, rer('POST naming no version (a page loaded before versions existed)',
-      '200, as before', String(unversioned.status)));
+    assert.equal(unversioned.status, 409, rer('POST naming no version of the list', '409, like a stale version', String(unversioned.status)));
+    assert.deepEqual(server.stored(), FIXTURE, rer('POST naming no version of the list, then read the data file',
+      'the list from before, untouched', JSON.stringify(server.stored())));
+
+    // The API's version is in its URL (API_URL in src/dishes.js), and nothing
+    // is served at any other, so a page older than the server can neither read
+    // nor save. Here, one from before API versions existed, which used
+    // /api/dishes. Current pages, told 404, say to reload.
+    const old = `${server.url}/api/dishes`;
+    const read = await fetch(old);
+    const write = await fetch(old, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Dishes-Version': await version() }, body: JSON.stringify(theirs),
+    });
+    assert.deepEqual([read.status, write.status], [404, 404], rer('GET /api/dishes, then POST a valid list there naming the current version',
+      '404 both times', `${read.status}, then ${write.status}`));
+    assert.deepEqual(server.stored(), FIXTURE, rer('POST a valid list to /api/dishes, then read the data file',
+      'the list from before, untouched', JSON.stringify(server.stored())));
   } finally {
     await server.stop();
   }
@@ -122,9 +136,9 @@ const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`
   const server = await startServer([]);
   try {
     fs.writeFileSync(server.dataFile, '{"dishes": [ oops');
-    const read = await fetch(`${server.url}/api/dishes`);
-    assert.equal(read.status, 500, rer('corrupt the data file; GET /api/dishes', '500', String(read.status)));
-    const write = await server.post(FIXTURE);
+    const read = await fetch(`${server.url}${DISHES_PATH}`);
+    assert.equal(read.status, 500, rer(`corrupt the data file; GET ${DISHES_PATH}`, '500', String(read.status)));
+    const write = await postRaw(server, JSON.stringify(FIXTURE));
     assert.equal(write.status, 500, rer('corrupt the data file; POST a list', '500', String(write.status)));
     const onDisk = fs.readFileSync(server.dataFile, 'utf8');
     assert.equal(onDisk, '{"dishes": [ oops', rer('corrupt the data file; GET, then POST',

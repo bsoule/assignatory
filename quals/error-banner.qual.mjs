@@ -6,7 +6,7 @@
 // The next load or save that works clears the alert. The alert's words aren't
 // pinned.
 import assert from 'node:assert/strict';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, row, saving, settled, shownIds, startServer } from './app.mjs';
+import { DISHES_PATH, FIXTURE, buildApp, inEveryEngine, openApp, rer, row, saving, settled, shownIds, startServer } from './app.mjs';
 
 const alertShows = (page) => page.getByRole('alert').waitFor({ timeout: 3000 }).then(() => true, () => false);
 const alertGoes = (page) => page.getByRole('alert').waitFor({ state: 'detached', timeout: 3000 }).then(() => true, () => false);
@@ -18,14 +18,14 @@ await inEveryEngine(async (browser, engine) => {
     // Loading fails.
     const broken = await openApp(browser, server, { apiFails: true });
     const loadAlert = await broken.getByRole('alert').waitFor({ timeout: 3000 }).then(() => true, () => false);
-    assert.ok(loadAlert, rer(`${engine}: open the page while /api/dishes answers 500`, 'an alert on the page', 'no alert'));
-    assert.deepEqual(broken.uncaught, [], rer(`${engine}: open the page while /api/dishes answers 500`,
+    assert.ok(loadAlert, rer(`${engine}: open the page while ${DISHES_PATH} answers 500`, 'an alert on the page', 'no alert'));
+    assert.deepEqual(broken.uncaught, [], rer(`${engine}: open the page while ${DISHES_PATH} answers 500`,
       'no uncaught errors: the failure is handled', JSON.stringify(broken.uncaught)));
 
     // Refreshing fails, then works.
     const refreshing = await openApp(browser, server);
     const shownBefore = await shownIds(refreshing);
-    await refreshing.route('**/api/dishes', (route) => (route.request().method() === 'GET'
+    await refreshing.route(`**${DISHES_PATH}`, (route) => (route.request().method() === 'GET'
       ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
       : route.continue()));
     await refreshing.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -33,7 +33,7 @@ await inEveryEngine(async (browser, engine) => {
     assert.ok(await alertShows(refreshing), rer(failedRefresh, 'an alert on the page', 'no alert'));
     const stillShown = await shownIds(refreshing);
     assert.deepEqual(stillShown, shownBefore, rer(failedRefresh, 'the list it had still shown', JSON.stringify(stillShown)));
-    await refreshing.unroute('**/api/dishes');
+    await refreshing.unroute(`**${DISHES_PATH}`);
     await refreshing.evaluate(() => window.dispatchEvent(new Event('focus')));
     assert.ok(await alertGoes(refreshing), rer(`${failedRefresh}; let loading work again; the window regains focus`,
       'the alert gone', 'it is still there'));
@@ -54,7 +54,7 @@ await inEveryEngine(async (browser, engine) => {
     // Saving fails, then works.
     const page = await openApp(browser, server);
     const before = server.stored();
-    await page.route('**/api/dishes', (route) => (route.request().method() === 'POST'
+    await page.route(`**${DISHES_PATH}`, (route) => (route.request().method() === 'POST'
       ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
       : route.continue()));
     const box = page.locator('[data-qual="new-dish"]');
@@ -70,7 +70,7 @@ await inEveryEngine(async (browser, engine) => {
     // A refresh that works (loading still does) says nothing about the failed
     // save, so the save's alert stays.
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await page.waitForResponse((r) => r.request().method() === 'GET' && new URL(r.url()).pathname === '/api/dishes');
+    await page.waitForResponse((r) => r.request().method() === 'GET' && new URL(r.url()).pathname === DISHES_PATH);
     await page.waitForTimeout(300);
     const stays = await page.getByRole('alert').count();
     assert.equal(stays, 1, rer(`${failedAdd}; the window regains focus, and the refresh works`,
@@ -89,7 +89,7 @@ await inEveryEngine(async (browser, engine) => {
     assert.equal(keptName, 'Pat', rer(`${engine}: make saves fail (500); type "Pat" into Mashed potatoes' box and click its button`,
       'the name still in the box', JSON.stringify(keptName)));
 
-    await page.unroute('**/api/dishes');
+    await page.unroute(`**${DISHES_PATH}`);
     await saving(page, () => box.press('Enter'));
     await page.getByRole('alert').waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
     const retried = `${failedAdd}; let saves work again; press Enter`;

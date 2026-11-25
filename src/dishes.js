@@ -1,5 +1,11 @@
 // Pure helpers for slicing the dish list into views.
-// Also listProblems, which server.js imports too (the Dockerfile copies this file next to server.js).
+// Also listProblems and API_URL, which server.js imports too (the Dockerfile copies this file next to server.js).
+
+// Where the server serves the dish list, and where the page asks for it. The
+// v1 is the API's version: bump it with any change that a page loaded before
+// it would get wrong. The server then serves nothing at the old URL (a 404),
+// so such a page can neither load nor save, and says to reload.
+export const API_URL = '/api/v1';  // This will be the base URL for our API
 
 export const CATEGORIES = ['Main', 'Side / Veg', 'Dessert', 'Beverage', 'Other'];
 

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { listProblems } from './src/dishes.js';
+import { API_URL, listProblems } from './src/dishes.js';
 
 // A JSON file (data.json locally, DATA_FILE on the Fly volume in production).
 function makeStore() {
@@ -39,8 +39,12 @@ app.use(express.json());
 // page would then name a version the server never gave out.)
 const versionOf = (dishes) => crypto.createHash('sha256').update(JSON.stringify(dishes)).digest('base64url');
 
+// Only the API's current version is served (API_URL names it), so a page
+// loaded before a bump gets 404s at its old URL: it can neither load nor
+// save, and says to reload.
+
 // Get all dishes
-app.get('/api/dishes', (req, res) => {
+app.get(`${API_URL}/dishes`, (req, res) => {
   try {
     const dishes = db.get('dishes') || [];
     res.set('Dishes-Version', versionOf(dishes)).json(dishes);
@@ -51,7 +55,7 @@ app.get('/api/dishes', (req, res) => {
 });
 
 // Update dishes
-app.post('/api/dishes', (req, res) => {
+app.post(`${API_URL}/dishes`, (req, res) => {
   // Refuse, loudly, any list the app couldn't have saved. (Without a JSON
   // content type, Express leaves req.body undefined, which is refused too.)
   const problems = listProblems(req.body);
@@ -60,12 +64,10 @@ app.post('/api/dishes', (req, res) => {
     return;
   }
   try {
-    // Someone else saved since this change's version: refuse it (the page
-    // redoes it on the newer list). Pages loaded before versions existed send
-    // no version and are let through, as before.
-    const changes = req.get('Dishes-Version');
-    if (changes !== undefined && changes !== versionOf(db.get('dishes') || [])) {
-      res.status(409).json({ error: ['Someone else saved first: this change is to an older list.'] });
+    // Someone else saved since this change's version, or it names none: refuse
+    // it (the page redoes it on the newer list).
+    if (req.get('Dishes-Version') !== versionOf(db.get('dishes') || [])) {
+      res.status(409).json({ error: ['This change is not to the current version of the list (Dishes-Version).'] });
       return;
     }
     db.set('dishes', req.body);
