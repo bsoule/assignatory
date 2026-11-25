@@ -60,7 +60,7 @@ const HelpDialog = ({ onClose }) => {
           </Step>
           <Step chip={<Chip className="bg-cream"><X size={18} strokeWidth={3} /></Chip>}>
             <strong className="font-semibold">Can’t bring it, or it should be someone else’s?</strong> Tap
-            the X to clear the name. Then type a name in its box and press Return.
+            the X to clear the name.
           </Step>
           <Step chip={<Chip className="bg-sand"><List size={18} strokeWidth={2.5} /></Chip>}>
             <strong className="font-semibold">See the menu.</strong> <Pill>Everything</Pill> shows the whole

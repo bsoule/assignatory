@@ -113,10 +113,11 @@ export async function inEveryEngine(qual) {
 // The app in a fresh browser context, loaded. Requests that would leave the
 // machine (the web font) get an empty answer, so no qual depends on the
 // network. Unless dismissHelp is false, the first-visit instructions are
-// closed. apiFails makes every /api/dishes request fail with a 500. Uncaught
-// errors are collected in page.uncaught for the qual to assert on.
-export async function openApp(browser, server, { hash = '', dismissHelp = true, apiFails = false } = {}) {
-  const context = await browser.newContext();
+// closed. apiFails makes every /api/dishes request fail with a 500. `context`
+// is passed to Playwright's newContext (a phone: { hasTouch: true, viewport }).
+// Uncaught errors are collected in page.uncaught for the qual to assert on.
+export async function openApp(browser, server, { hash = '', dismissHelp = true, apiFails = false, context: options = {} } = {}) {
+  const context = await browser.newContext(options);
   await context.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (route) => route.fulfill({ status: 200, body: '' }));
   if (apiFails) {
     await context.route('**/api/dishes', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }));

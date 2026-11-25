@@ -1,6 +1,6 @@
 // ThanksgivingPlanner.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, X, Check, Edit2, HelpCircle, Clock } from 'lucide-react';
+import { Plus, X, Check, Edit2, HelpCircle, Clock, UserPlus } from 'lucide-react';
 import Card from './Card';
 import HelpDialog from './HelpDialog';
 import Schedule from './Schedule';
@@ -92,6 +92,7 @@ const postDishes = async (dishes) => listFrom(await fetch(`${API_URL}/dishes`, {
 // by words or looks: data-dish={id} on each dish's row, data-view={id} on each
 // view's button, and data-qual="..." on each other element a qual uses.
 const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, confirm, release }) => {
+  const [draft, setDraft] = useState('');  // the name being typed into the assign box
   if (editing && editing.id === dish.id) {
     const set = (fields) => setEditing({ ...editing, ...fields });
     const onKeyDown = (e) => {
@@ -152,21 +153,34 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
       {/* Kept together so that on a narrow screen they wrap as one group */}
       <div className="ml-auto flex items-center gap-2">
         {isUnclaimed(dish) ? (
-          <input
-            type="text"
-            aria-label={`Who is bringing ${dish.name}?`}
-            data-qual="assign"
-            placeholder="Assign to..."
-            list="people"
-            className="field w-36 py-1.5 text-sm"
-            onKeyDown={(e) => {
-              const name = e.target.value.trim();
-              if (e.key === 'Enter' && name) {
-                assign(dish.id, name);
-                e.target.value = '';
-              }
+          <form
+            className="flex items-center gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (await assign(dish.id, draft.trim())) setDraft('');
             }}
-          />
+          >
+            {/* A form, so Enter (or a phone keyboard's Go key) submits it just as the button does */}
+            <input
+              type="text"
+              aria-label={`Who is bringing ${dish.name}?`}
+              data-qual="assign"
+              placeholder="Assign to..."
+              list="people"
+              className="field w-28 py-1.5 text-sm sm:w-36"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+            <button
+              type="submit"
+              data-qual="assign-submit"
+              disabled={draft.trim() === ''}
+              className="round-button bg-cream enabled:hover:bg-sand enabled:active:bg-sand disabled:opacity-40"
+              title="Assign it"
+            >
+              <UserPlus size={18} strokeWidth={2.5} />
+            </button>
+          </form>
         ) : dish.status === 'confirmed' ? (
           <>
             <span data-qual="assignee" className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-leaf px-3 py-0.5 font-medium">

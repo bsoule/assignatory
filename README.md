@@ -6,9 +6,8 @@ This file is only for humans. Robots see IGNOREME.md
 
 # Next tasks
 
-* [ENT] having to hit enter to make a new name stick is confusing and probably doesn't work on mobile at all. basically should always have some sort of explicit submit button.
 * [WHO] bigger UX thing: someone's gonna end up checking the confirm button on behalf of someone else and confusion's gonna ensue. the page could make you say who you are first or something? i guess this needs more thought, or maybe i'm wrong and it will be fine with this many users.
-* [WH2] possibly subsuming [WHO], drop the "Mine"
+* [WH2] possibly subsuming [WHO], drop the "Mine" and just have a dropdown for which person
 * [LPS] can we do all the standard link preview stuff?
 * [SIM] quals to make sure we fail gracefully or at least loudly if two people make changes at once that can't be automatically reconciled.
 

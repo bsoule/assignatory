@@ -6,7 +6,7 @@
 // The next load or save that works clears the alert. The alert's words aren't
 // pinned.
 import assert from 'node:assert/strict';
-import { FIXTURE, buildApp, inEveryEngine, openApp, rer, saving, settled, shownIds, startServer } from './app.mjs';
+import { FIXTURE, buildApp, inEveryEngine, openApp, rer, row, saving, settled, shownIds, startServer } from './app.mjs';
 
 const alertShows = (page) => page.getByRole('alert').waitFor({ timeout: 3000 }).then(() => true, () => false);
 const alertGoes = (page) => page.getByRole('alert').waitFor({ state: 'detached', timeout: 3000 }).then(() => true, () => false);
@@ -75,6 +75,19 @@ await inEveryEngine(async (browser, engine) => {
     const stays = await page.getByRole('alert').count();
     assert.equal(stays, 1, rer(`${failedAdd}; the window regains focus, and the refresh works`,
       'the save\'s alert still there', `${stays} alerts`));
+
+    // A failed assignment keeps the typed name in its box too, for another try.
+    const nameBox = row(page, 3).locator('[data-qual="assign"]');
+    const send = row(page, 3).locator('[data-qual="assign-submit"]');
+    const sendButtons = await send.count();
+    assert.equal(sendButtons, 1, rer(`${engine}: look next to unclaimed Mashed potatoes' name box`, 'a button that sends the name',
+      `${sendButtons} buttons`));
+    await nameBox.fill('Pat');
+    await saving(page, () => send.click());
+    await page.waitForTimeout(300);
+    const keptName = await nameBox.inputValue();
+    assert.equal(keptName, 'Pat', rer(`${engine}: make saves fail (500); type "Pat" into Mashed potatoes' box and click its button`,
+      'the name still in the box', JSON.stringify(keptName)));
 
     await page.unroute('**/api/dishes');
     await saving(page, () => box.press('Enter'));
