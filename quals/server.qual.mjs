@@ -13,8 +13,8 @@ const getDishes = async (server) => {
   const response = await fetch(`${server.url}/api/dishes`);
   return { status: response.status, body: await response.json() };
 };
-const postRaw = (server, body) => fetch(`${server.url}/api/dishes`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+const postRaw = (server, body, headers = {}) => fetch(`${server.url}/api/dishes`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body,
 });
 
 // A fresh install: no data file. The list is empty and reading it creates no file.
@@ -75,6 +75,43 @@ const postRaw = (server, body) => fetch(`${server.url}/api/dishes`, {
     assert.equal(untyped.status, 400, rer('POST a valid list as text/plain', '400', String(untyped.status)));
     assert.deepEqual(server.stored(), list, rer('POST a valid list as text/plain, then read the data file',
       'the list from before, untouched', JSON.stringify(server.stored())));
+  } finally {
+    await server.stop();
+  }
+}
+
+// Versions ([SIM] in the human's task list): each list has one, sent in a
+// Dishes-Version header. A save naming the version it changes (the same header)
+// goes through only if that's still the current one, so it can't overwrite a
+// save it never saw. A save naming none (pages loaded before versions existed)
+// goes through as before.
+{
+  const server = await startServer(FIXTURE);
+  try {
+    const version = async () => (await fetch(`${server.url}/api/dishes`)).headers.get('dishes-version');
+    const v1 = await version();
+    assert.ok(typeof v1 === 'string' && v1 !== '', rer('GET /api/dishes', 'a Dishes-Version header, the list\'s version', String(v1)));
+    const v1again = await version();
+    assert.equal(v1again, v1, rer('GET /api/dishes twice, nothing saved in between', 'the same version both times', `${v1}, then ${v1again}`));
+
+    const theirs = FIXTURE.map((d) => (d.id === 3 ? { ...d, assignedTo: 'Pat', status: 'pending' } : d));
+    const saved = await postRaw(server, JSON.stringify(theirs), { 'Dishes-Version': v1 });
+    const v2 = saved.headers.get('dishes-version');
+    const v2read = await version();
+    assert.ok(saved.status === 200 && v2 !== v1 && v2read === v2, rer('POST a changed list naming the current version',
+      '200, with a new version, the one a GET now gives', `${saved.status}, version ${v2}; GET gives ${v2read}`));
+
+    const stale = await postRaw(server, JSON.stringify(FIXTURE), { 'Dishes-Version': v1 });
+    assert.equal(stale.status, 409, rer('POST another list naming the version from before that save',
+      '409: that version is gone', String(stale.status)));
+    assert.deepEqual(server.stored(), theirs, rer('POST with the old version, then read the data file',
+      'the save it would have overwritten, untouched', JSON.stringify(server.stored())));
+
+    const current = await postRaw(server, JSON.stringify(FIXTURE), { 'Dishes-Version': v2 });
+    assert.equal(current.status, 200, rer('POST naming the current version', '200', String(current.status)));
+    const unversioned = await postRaw(server, JSON.stringify(theirs));
+    assert.equal(unversioned.status, 200, rer('POST naming no version (a page loaded before versions existed)',
+      '200, as before', String(unversioned.status)));
   } finally {
     await server.stop();
   }

@@ -74,6 +74,11 @@ const DISH_RULES = [
   ['be unassigned exactly when nobody is named', (dish) => (dish?.status === 'unassigned') === (dish?.assignedTo === '')],
 ];
 
+// Whether a dish (now, or undefined if it's gone) is the same in every field as
+// it was, whatever order its fields are in. A change to a dish is refused when
+// someone else changed the dish since the page showed it.
+export const sameDish = (now, was) => now !== undefined && FIELDS.every((field) => now[field] === was[field]);
+
 // Everything wrong with a dish list, a sentence each; none for a list the app
 // could have saved. The server refuses a list with problems and the page
 // won't show one: anti-Postel, fail loudly rather than guess.

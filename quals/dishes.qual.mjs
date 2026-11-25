@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {
   CATEGORIES, guessCategory, categoryOf, isPie, isUnclaimed, peopleOf, isBringing, allPeople, groupByCategory,
-  listProblems,
+  listProblems, sameDish,
 } from '../src/dishes.js';
 import { FIXTURE, rer } from './app.mjs';
 
@@ -182,4 +182,21 @@ for (const [label, list] of [
     `listProblems(${label}: ${JSON.stringify(list)})`, 'at least one problem, each a sentence', JSON.stringify(problems)));
 }
 
-console.log('qual pass: dish helpers (categories, pies, unclaimed, people, grouping, list problems)');
+// sameDish: the same in every field, whatever order the fields are in. A
+// change to a dish is refused when the dish isn't the same as the page showed it.
+const shown = { id: 2, name: 'Stuffing', category: SIDE, notes: '', assignedTo: 'Sam', status: 'pending' };
+for (const [label, now, expected] of [
+  ['its fields in another order', { status: 'pending', assignedTo: 'Sam', notes: '', category: SIDE, name: 'Stuffing', id: 2 }, true],
+  ['another name', { ...shown, name: 'Cornbread stuffing' }, false],
+  ['another assignee', { ...shown, assignedTo: 'Lee' }, false],
+  ['another status', { ...shown, status: 'confirmed' }, false],
+  ['notes added', { ...shown, notes: 'extra sage' }, false],
+  ['no notes field at all', Object.fromEntries(Object.entries(shown).filter(([key]) => key !== 'notes')), false],
+  ['no such dish (not in the list)', undefined, false],
+]) {
+  same(sameDish(now, shown), expected, `sameDish(the dish now: ${label}; the dish as shown)`, String(expected));
+}
+const turkey = { id: 1, name: 'Turkey', assignedTo: '', status: 'unassigned' };
+same(sameDish({ ...turkey }, turkey), true, 'sameDish of a dish with no category or notes, and a copy of it', 'true');
+
+console.log('qual pass: dish helpers (categories, pies, unclaimed, people, grouping, list problems, sameDish)');

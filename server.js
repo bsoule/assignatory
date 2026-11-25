@@ -1,4 +1,5 @@
 import assert from 'assert';
+import crypto from 'crypto';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -15,9 +16,10 @@ function makeStore() {
       throw err;
     }
   };
+  // Synchronous, so a save's version check and its write can't be split by another request.
   return {
-    get: async (key) => read()[key] ?? null,
-    set: async (key, value) => {
+    get: (key) => read()[key] ?? null,
+    set: (key, value) => {
       // Write to a temp file and rename so a crash mid-write can't corrupt the data.
       const tmp = `${file}.tmp`;
       fs.writeFileSync(tmp, JSON.stringify({ ...read(), [key]: value }, null, 2));
@@ -31,11 +33,17 @@ const db = makeStore();
 
 app.use(express.json());
 
+// A list's version, sent in a Dishes-Version header. A save names the version
+// it changes in the same header, so it can't overwrite a save it never saw.
+// (Not ETag and If-Match: a proxy that compresses may weaken an ETag, and the
+// page would then name a version the server never gave out.)
+const versionOf = (dishes) => crypto.createHash('sha256').update(JSON.stringify(dishes)).digest('base64url');
+
 // Get all dishes
-app.get('/api/dishes', async (req, res) => {
+app.get('/api/dishes', (req, res) => {
   try {
-    const dishes = await db.get('dishes') || [];
-    res.json(dishes);
+    const dishes = db.get('dishes') || [];
+    res.set('Dishes-Version', versionOf(dishes)).json(dishes);
   } catch (error) {
     console.error('Database error:', error);
     res.status(500).json({ error: 'Failed to fetch dishes' });
@@ -43,7 +51,7 @@ app.get('/api/dishes', async (req, res) => {
 });
 
 // Update dishes
-app.post('/api/dishes', async (req, res) => {
+app.post('/api/dishes', (req, res) => {
   // Refuse, loudly, any list the app couldn't have saved. (Without a JSON
   // content type, Express leaves req.body undefined, which is refused too.)
   const problems = listProblems(req.body);
@@ -52,8 +60,16 @@ app.post('/api/dishes', async (req, res) => {
     return;
   }
   try {
-    await db.set('dishes', req.body);
-    res.json(req.body);
+    // Someone else saved since this change's version: refuse it (the page
+    // redoes it on the newer list). Pages loaded before versions existed send
+    // no version and are let through, as before.
+    const changes = req.get('Dishes-Version');
+    if (changes !== undefined && changes !== versionOf(db.get('dishes') || [])) {
+      res.status(409).json({ error: ['Someone else saved first: this change is to an older list.'] });
+      return;
+    }
+    db.set('dishes', req.body);
+    res.set('Dishes-Version', versionOf(req.body)).json(req.body);
   } catch (error) {
     console.error('Database error:', error);
     res.status(500).json({ error: 'Failed to update dishes' });

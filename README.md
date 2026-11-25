@@ -8,8 +8,6 @@ This file is only for humans. Robots see IGNOREME.md
 
 * [WHO] bigger UX thing: someone's gonna end up checking the confirm button on behalf of someone else and confusion's gonna ensue. the page could make you say who you are first or something? i guess this needs more thought, or maybe i'm wrong and it will be fine with this many users.
 * [WH2] possibly subsuming [WHO], drop the "Mine" and just have a dropdown for which person
-* [LPS] can we do all the standard link preview stuff?
-* [SIM] quals to make sure we fail gracefully or at least loudly if two people make changes at once that can't be automatically reconciled.
 
 
 Brainstorming dishes, list from Thanksgiving 2025:

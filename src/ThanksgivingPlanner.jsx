@@ -14,6 +14,7 @@ import {
   allPeople,
   groupByCategory,
   listProblems,
+  sameDish,
 } from './dishes';
 
 const API_URL = '/api';  // This will be the base URL for our API
@@ -44,6 +45,10 @@ const routeHash = ({ view, who }) => (view === 'mine' && who ? `mine/${encodeURI
 
 // Alert copy for a link whose part after the # isn't a view this page has.
 const BAD_ROUTE = `Oops, the URL got mangled so we're just showing everything...`;
+
+// alert copy for when someone else changed a dish just before you acted on
+// it, so your change wasn't made; the list now shows the dish as it is.
+const CONFLICT = `Oops, someone changed this out from under you!`;
 
 // The view lives in the URL (#pies, #mine/Bee) so a link can point straight at one.
 // A hash the app wouldn't have written (routeHash) isn't guessed at: it shows the
@@ -80,13 +85,28 @@ const listFrom = async (response) => {
   return dishes;
 };
 
-const fetchDishes = async () => listFrom(await fetch(`${API_URL}/dishes`));
+// The saved list and its version (from the server's Dishes-Version header), which
+// a save names so it can't overwrite a save it never saw.
+const fetchLatest = async () => {
+  const response = await fetch(`${API_URL}/dishes`);
+  const dishes = await listFrom(response);
+  const version = response.headers.get('Dishes-Version');
+  if (version === null) throw new Error('The dish list came without its version (Dishes-Version)');
+  return { dishes, version };
+};
 
-const postDishes = async (dishes) => listFrom(await fetch(`${API_URL}/dishes`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(dishes),
-}));
+const fetchDishes = async () => (await fetchLatest()).dishes;
+
+// Saves the list as a change to that version of it. Resolves to the saved list,
+// or to null if someone else saved first (the server's 409).
+const postDishes = async (dishes, version) => {
+  const response = await fetch(`${API_URL}/dishes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Dishes-Version': version },
+    body: JSON.stringify(dishes),
+  });
+  return response.status === 409 ? null : listFrom(response);
+};
 
 // Hooks for the quals (quals/app.mjs), which find elements by these and never
 // by words or looks: data-dish={id} on each dish's row, data-view={id} on each
@@ -157,7 +177,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             className="flex items-center gap-2"
             onSubmit={async (e) => {
               e.preventDefault();
-              if (await assign(dish.id, draft.trim())) setDraft('');
+              if (await assign(dish, draft.trim())) setDraft('');
             }}
           >
             {/* A form, so Enter (or a phone keyboard's Go key) submits it just as the button does */}
@@ -187,7 +207,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
               {dish.assignedTo}
               <Check size={16} strokeWidth={3} role="img" aria-label="confirmed" />
             </span>
-            <button onClick={() => release(dish.id)} data-qual="release" className="ghost-button" title="Remove assignment">
+            <button onClick={() => release(dish)} data-qual="release" className="ghost-button" title="Remove assignment">
               <X size={18} strokeWidth={2.5} />
             </button>
           </>
@@ -197,10 +217,10 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             <span data-qual="assignee" className="rounded-full border-2 border-dashed border-ink/60 px-3 py-0.5 font-medium">
               {dish.assignedTo}
             </span>
-            <button onClick={() => confirm(dish.id)} data-qual="confirm" className="round-button bg-cream hover:bg-leaf active:bg-leaf" title="Confirm">
+            <button onClick={() => confirm(dish)} data-qual="confirm" className="round-button bg-cream hover:bg-leaf active:bg-leaf" title="Confirm">
               <Check size={18} strokeWidth={3} />
             </button>
-            <button onClick={() => release(dish.id)} data-qual="decline" className="round-button bg-cream hover:bg-tomato active:bg-tomato" title="Decline">
+            <button onClick={() => release(dish)} data-qual="decline" className="round-button bg-cream hover:bg-tomato active:bg-tomato" title="Decline">
               <X size={18} strokeWidth={3} />
             </button>
           </>
@@ -212,6 +232,7 @@ const DishRow = ({ dish, showCategory, editing, setEditing, saveEdit, assign, co
             name: dish.name,
             category: categoryOf(dish),
             notes: dish.notes || '',
+            seen: dish,  // the dish as the editor opened on it
           })}
           data-qual="edit"
           className="ghost-button"
@@ -260,8 +281,9 @@ const ThanksgivingPlanner = () => {
     };
     // The first load seeds an empty list with the default dishes; a refresh never does.
     const seeded = async () => {
-      const storedDishes = await fetchDishes();
-      return storedDishes.length === 0 ? postDishes(DEFAULT_DISHES) : storedDishes;
+      const { dishes: storedDishes, version } = await fetchLatest();
+      // If someone else's page seeded it first (null), show theirs.
+      return storedDishes.length === 0 ? (await postDishes(DEFAULT_DISHES, version)) ?? fetchDishes() : storedDishes;
     };
     const refresh = () => {
       if (document.visibilityState === 'visible') loadDishes(fetchDishes);
@@ -284,12 +306,28 @@ const ThanksgivingPlanner = () => {
 
   // Apply each change to the latest saved list rather than this tab's copy, so a
   // tab left open for days can't overwrite what everyone else has done since.
-  const change = async (update) => {
+  // A change to one dish (seen: as this tab showed it) is refused, loudly, if
+  // someone else changed that dish since. If someone else saved anything in
+  // between (null from postDishes), the change is redone on the newer list.
+  const change = async (update, seen) => {
     try {
-      setDishes(await postDishes(update(await fetchDishes())));
-      setSaveError('');
-      setLoadError('');  // the save loaded the latest list first
-      return true;
+      for (let tries = 1; tries <= 3; tries++) {
+        const { dishes: latest, version } = await fetchLatest();
+        if (seen !== undefined && !sameDish(latest.find((dish) => dish.id === seen.id), seen)) {
+          setDishes(latest);
+          setSaveError(CONFLICT);
+          setEditing((open) => (open?.id === seen.id ? null : open));
+          return false;
+        }
+        const saved = await postDishes(update(latest), version);
+        if (saved !== null) {
+          setDishes(saved);
+          setSaveError('');
+          setLoadError('');  // the save loaded the latest list first
+          return true;
+        }
+      }
+      throw new Error('Other people\'s saves beat this one three times in a row');
     } catch (err) {
       console.error('Error saving dishes:', err);
       setSaveError("Couldn't save that change. Check your connection and try again?");
@@ -297,8 +335,9 @@ const ThanksgivingPlanner = () => {
     }
   };
 
-  const updateDish = (id, fields) =>
-    change((latest) => latest.map((dish) => (dish.id === id ? { ...dish, ...fields } : dish)));
+  // A change to one dish, as this tab showed it (seen).
+  const updateDish = (seen, fields) =>
+    change((latest) => latest.map((dish) => (dish.id === seen.id ? { ...dish, ...fields } : dish)), seen);
 
   const addDish = async () => {
     const name = newDish.trim();
@@ -321,16 +360,16 @@ const ThanksgivingPlanner = () => {
     const name = editing.name.trim();
     if (!name) return;
     const fields = { name, category: editing.category, notes: editing.notes.trim() };
-    if (await updateDish(editing.id, fields)) setEditing(null);
+    if (await updateDish(editing.seen, fields)) setEditing(null);
   };
 
   const rowActions = {
     editing,
     setEditing,
     saveEdit,
-    assign: (id, name) => updateDish(id, { assignedTo: name, status: 'pending' }),
-    confirm: (id) => updateDish(id, { status: 'confirmed' }),
-    release: (id) => updateDish(id, { assignedTo: '', status: 'unassigned' }),
+    assign: (dish, name) => updateDish(dish, { assignedTo: name, status: 'pending' }),
+    confirm: (dish) => updateDish(dish, { status: 'confirmed' }),
+    release: (dish) => updateDish(dish, { assignedTo: '', status: 'unassigned' }),
   };
 
   if (loading) {
