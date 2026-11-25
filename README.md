@@ -7,8 +7,47 @@ This file is only for humans. Robots see IGNOREME.md
 # Possible next tasks
 
 * [WHO] bigger UX thing: someone's gonna end up checking the confirm button on behalf of someone else and confusion's gonna ensue. the page could make you say who you are first or something? i guess this needs more thought, or maybe i'm wrong and it will be fine with this many users.
-* [WH2] possibly subsuming [WHO], drop the "Mine" and just have a dropdown for which person
+* [WH2] possibly subsuming [WHO], drop the "Mine" and just have a dropdown for which person?
 
+# Namestorming
+
+```
+parcely (like parceling but also parsely)
+dishpatch
+splitsy
+tasket
+taskquatch
+divvyup
+rolecall
+piecemeal
+allocadia
+allokatie
+dividendum (Latin for "things to be divided")
+delegato
+distributopia
+dianome (Greek for "allocation")
+goblot
+dibby
+kitchencall 
+nobitchenkitchen
+taskle
+dibbydebby
+dishtribution
+fairfare
+divvydo
+sharemony
+gobblegator
+aufgaben (German for tasks)
+tasketeer
+assignmint
+gobble
+portionpal
+sharefair
+assignatory
+givven
+```
+
+---
 
 Brainstorming dishes, list from Thanksgiving 2025:
 

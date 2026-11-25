@@ -47,39 +47,38 @@ const HelpDialog = ({ onClose }) => {
         className="card flex max-h-full w-full max-w-md flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="help-title" className="border-b-2 border-ink bg-leaf px-4 py-2 text-xl font-semibold">
-          How it works
-        </h2>
 
-        <ul className="space-y-4 overflow-y-auto p-4">
-          <Step chip={<Chip className="bg-tomato"><Plus size={20} strokeWidth={3} /></Chip>}>
-            <strong className="font-semibold">Add a dish.</strong> Type it in the box at the top, then tap the red plus.
-          </Step>
-          <Step chip={<Chip className="bg-cream"><Check size={18} strokeWidth={3} /></Chip>}>
-            <strong className="font-semibold">Bringing your dish?</strong> Tap the check next to your name.
-          </Step>
-          <Step chip={<Chip className="bg-cream"><X size={18} strokeWidth={3} /></Chip>}>
-            <strong className="font-semibold">Can’t bring it, or it should be someone else’s?</strong> Tap
-            the X to clear the name.
-          </Step>
-          <Step chip={<Chip className="bg-sand"><List size={18} strokeWidth={2.5} /></Chip>}>
-            <strong className="font-semibold">See the menu.</strong> <Pill>Everything</Pill> shows the whole
-            list. <Pill>Unclaimed</Pill> shows what still needs someone.
-          </Step>
-          <Step chip={<Chip className="bg-sand"><Clock size={18} strokeWidth={2.5} /></Chip>}>
-            <strong className="font-semibold">Plan for the day.</strong> <Pill>Schedule</Pill> shows what’s
-            happening when.
-          </Step>
-          <Step chip={<Chip className="bg-sand"><Users size={18} strokeWidth={2.5} /></Chip>}>
-            <strong className="font-semibold">We’re expecting 13 people this year.</strong>
-          </Step>
-        </ul>
+<h2 id="help-title" className="border-b-2 border-ink bg-leaf px-4 py-2 text-xl font-semibold">
+Read the Destructions
+</h2>
 
-        <div className="border-t-2 border-dashed border-ink/15 px-4 py-3 text-right">
-          <button ref={closeButton} onClick={onClose} data-qual="close-help" className="tab bg-ink px-5 py-1.5 text-lg text-cream">
-            Got it
-          </button>
-        </div>
+<ul className="space-y-4 overflow-y-auto p-4">
+<Step chip={<Chip className="bg-tomato"><Plus size={20} strokeWidth={3} /></Chip>}>
+<strong className="font-semibold">Add a dish.</strong> Type it up top and tap the red plus.
+</Step>
+<Step chip={<Chip className="bg-cream"><Check size={18} strokeWidth={3} /></Chip>}>
+<strong className="font-semibold">Confirm a dish.</strong> Press the checkmark button next to your name.
+</Step>
+<Step chip={<Chip className="bg-cream"><X size={18} strokeWidth={3} /></Chip>}>
+<strong className="font-semibold">Can’t bring it, or someone else should?</strong> Use the X to clear out the name.
+</Step>
+<Step chip={<Chip className="bg-sand"><List size={18} strokeWidth={2.5} /></Chip>}>
+<strong className="font-semibold">See the menu.</strong> <Pill>Everything</Pill> shows all dishes. <Pill>Unclaimed</Pill> shows dishes in danger of not getting brought. Etc.
+</Step>
+<Step chip={<Chip className="bg-sand"><Clock size={18} strokeWidth={2.5} /></Chip>}>
+<strong className="font-semibold">Plan for the day.</strong> See the <Pill>Schedule</Pill> button.
+</Step>
+<Step chip={<Chip className="bg-sand"><Users size={18} strokeWidth={2.5} /></Chip>}>
+<strong className="font-semibold">We’re expecting 13 people this year.</strong>
+</Step>
+</ul>
+
+<div className="border-t-2 border-dashed border-ink/15 px-4 py-3 text-right">
+<button ref={closeButton} onClick={onClose} data-qual="close-help" className="tab bg-ink px-5 py-1.5 text-lg text-cream">
+Gobble gobble
+</button>
+</div>
+
       </div>
     </div>
   );
