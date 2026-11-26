@@ -32,7 +32,8 @@ const VIEWS = [
   { id: 'all', label: 'Everything' },
   { id: 'mine', label: 'Mine' },
   { id: 'pies', label: 'Pies' },
-  { id: 'unclaimed', label: 'Unclaimed' },
+  // A red "!" after its count while any dish needs someone.
+  { id: 'unclaimed', label: 'Unclaimed', alarm: true },
   // Not a view of the dish list, so its pill looks different: green, with a clock.
   { id: 'schedule', label: 'Schedule', aside: true },
 ];
@@ -487,7 +488,7 @@ const ThanksgivingPlanner = () => {
 
         {/* Views */}
         <nav aria-label="Views" className="flex flex-wrap gap-2">
-          {VIEWS.map(({ id, label, aside }) => {
+          {VIEWS.map(({ id, label, aside, alarm }) => {
             const active = route.view === id;
             const idle = aside ? 'bg-leaf hover:bg-leaf/80 active:bg-leaf/80' : 'bg-cream hover:bg-white active:bg-white';
             return (
@@ -504,6 +505,10 @@ const ThanksgivingPlanner = () => {
                   <span data-qual="count" className={`rounded-full px-2 text-sm ${active ? 'bg-cream text-ink' : 'bg-sand'}`}>
                     {counts[id]}
                   </span>
+                )}
+                {alarm && (
+                  // Hidden rather than removed at zero, so the button keeps its width.
+                  <span data-qual="alarm" aria-hidden="true" className={`font-bold text-tomato ${counts[id] > 0 ? '' : 'invisible'}`}>!</span>
                 )}
               </button>
             );
